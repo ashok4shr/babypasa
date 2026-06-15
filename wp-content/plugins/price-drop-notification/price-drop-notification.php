@@ -18,6 +18,22 @@ class BP_Price_Drop_Notification {
 
         // Automatic rewrite flush to fix 404s
         add_action( 'init', array( $this, 'flush_rewrites' ), 99 );
+
+        // Register the price-drop alert as a WooCommerce email (settings + shared design).
+        add_filter( 'woocommerce_email_classes', array( $this, 'register_email_class' ) );
+    }
+
+    /**
+     * Register the price-drop WC_Email so it appears under WooCommerce > Settings
+     * > Emails and renders through the shared BabyPasa header/footer.
+     *
+     * @param array $emails Registered WC email instances.
+     * @return array
+     */
+    public function register_email_class( $emails ) {
+        require_once plugin_dir_path( __FILE__ ) . 'includes/class-bp-price-drop-email.php';
+        $emails['BP_Price_Drop_Email'] = new BP_Price_Drop_Email();
+        return $emails;
     }
 
     private function includes() {

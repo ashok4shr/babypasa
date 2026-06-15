@@ -139,7 +139,7 @@ $bp_steps = array(
 			       role="presentation" style="margin:0 auto 8px;">
 				<tr>
 					<?php if ( $bp_is_completed ) : ?>
-					<td style="width:30px;height:30px;
+					<td width="30" height="30" align="center" valign="middle" style="width:30px;min-width:30px;height:30px;
 					           background:#ec4899;<?php echo $bp_is_active_step ? '
 					           border:3px solid #9d174d;' : ''; ?>
 					           border-radius:15px;
@@ -150,7 +150,7 @@ $bp_steps = array(
 						     style="display:inline-block;vertical-align:middle;border:0;" />
 					</td>
 					<?php else : ?>
-					<td style="width:30px;height:30px;
+					<td width="30" height="30" align="center" valign="middle" style="width:30px;min-width:30px;height:30px;
 					           background:#ffffff;
 					           border:2px solid #fbcfe8;
 					           border-radius:15px;
@@ -267,7 +267,7 @@ $bp_steps = array(
 			<table border="0" cellpadding="0" cellspacing="0"
 			       role="presentation">
 				<tr>
-					<td style="width:36px;height:36px;
+					<td width="36" height="36" align="center" valign="middle" style="width:36px;min-width:36px;height:36px;
 					           background:#ec4899;border-radius:18px;
 					           text-align:center;vertical-align:middle;">
 						<img src="<?php echo esc_url( get_stylesheet_directory_uri() . '/assets/images/email-icons/phone.png' ); ?>" width="20" height="20" alt="" style="display:inline-block;vertical-align:middle;border:0;" />

@@ -121,7 +121,7 @@ body                     { margin: 0; padding: 0; background-color: #f3f4f6; }
 
 	/* Stack address / payment tiles */
 	.tile-cell,
-	.tile-cell-b           { display: block !important; width: 100% !important; }
+	.tile-cell-b           { display: block !important; width: 100% !important; max-width: none !important; }
 	.tile-left,
 	.tile-left-b           { padding-right: 0 !important; padding-bottom: 10px !important; }
 	.tile-right,
@@ -137,7 +137,7 @@ body                     { margin: 0; padding: 0; background-color: #f3f4f6; }
 
 	/* Stack feature strip */
 	.feat-cell,
-	.feat-cell-last        { display: block !important; width: 100% !important; border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.25) !important; }
+	.feat-cell-last        { display: block !important; width: 100% !important; max-width: none !important; border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.25) !important; }
 	.feat-cell-last        { border-bottom: none !important; }
 
 	/* Full-width CTA */

@@ -32,18 +32,18 @@ class BP_Price_Drop_Backend {
     }
 
     private function send_notification_email( $user, $product, $new_price, $old_price ) {
-        $to = $user->user_email;
-        $subject = 'Price Drop Alert: ' . $product->get_name();
-        
-        $message = sprintf( 
-            "Hello %s,\n\nGreat news! The price of %s has dropped from %s to %s.\n\nGrab it now before it's gone: %s\n\nBest,\nBabyPasa Team",
-            $user->display_name,
-            $product->get_name(),
-            wc_price( $old_price ),
-            wc_price( $new_price ),
-            $product->get_permalink()
-        );
+        // Send through the registered WC_Email so the alert uses the shared
+        // BabyPasa HTML design (header/footer + CSS inliner) instead of the old
+        // plain-text wp_mail() that leaked raw wc_price() markup.
+        if ( ! function_exists( 'WC' ) ) {
+            return;
+        }
 
-        wp_mail( $to, $subject, $message );
+        $mailer = WC()->mailer();
+        $emails = $mailer->get_emails();
+
+        if ( isset( $emails['BP_Price_Drop_Email'] ) ) {
+            $emails['BP_Price_Drop_Email']->trigger( $user, $product, $new_price, $old_price );
+        }
     }
 }
