@@ -20,13 +20,14 @@ $shipping      = $order->get_formatted_shipping_address();
 $show_shipping = ! wc_ship_to_billing_address_only() && $order->needs_shipping_address() && $shipping;
 
 ?>
-<!-- CLIENT TEMPLATE: E03 — address tiles -->
-<table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation" id="addresses" style="margin:0 0 16px;">
-	<tr>
+<!-- CLIENT TEMPLATE: E03 — address tiles (hybrid: inline-block divs stack on narrow screens with NO media query). -->
+<div id="addresses" style="font-size:0;margin:0 0 16px;text-align:left;">
+	<!--[if mso]><table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation"><tr><![endif]-->
 
 		<?php if ( $show_shipping ) : ?>
+		<!--[if mso]><td width="50%" valign="top"><![endif]-->
 		<!-- Shipping -->
-		<td class="tile-cell tile-left" style="width:50%;vertical-align:top;padding-right:6px;">
+		<div class="tile-cell tile-left" style="display:inline-block;width:100%;max-width:260px;vertical-align:top;box-sizing:border-box;padding-right:6px;">
 			<table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation">
 				<tr>
 					<td class="tile-box" style="background:#f9fafb;border-radius:8px;padding:14px;border:1px solid #f3f4f6;">
@@ -66,11 +67,13 @@ $show_shipping = ! wc_ship_to_billing_address_only() && $order->needs_shipping_a
 					</td>
 				</tr>
 			</table>
-		</td>
+		</div>
+		<!--[if mso]></td><![endif]-->
 		<?php endif; ?>
 
+		<!--[if mso]><td width="<?php echo $show_shipping ? '50%' : '100%'; ?>" valign="top"><![endif]-->
 		<!-- Billing -->
-		<td class="tile-cell tile-right" style="width:<?php echo $show_shipping ? '50%' : '100%'; ?>;vertical-align:top;<?php echo $show_shipping ? 'padding-left:6px;' : ''; ?>">
+		<div class="tile-cell tile-right" style="display:inline-block;width:100%;max-width:<?php echo $show_shipping ? '260px' : '100%'; ?>;vertical-align:top;box-sizing:border-box;<?php echo $show_shipping ? 'padding-left:6px;' : ''; ?>">
 			<table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation">
 				<tr>
 					<td class="tile-box" style="background:#f9fafb;border-radius:8px;padding:14px;border:1px solid #f3f4f6;">
@@ -113,7 +116,8 @@ $show_shipping = ! wc_ship_to_billing_address_only() && $order->needs_shipping_a
 					</td>
 				</tr>
 			</table>
-		</td>
+		</div>
+	<!--[if mso]></td><![endif]-->
 
-	</tr>
-</table>
+	<!--[if mso]></tr></table><![endif]-->
+</div>
