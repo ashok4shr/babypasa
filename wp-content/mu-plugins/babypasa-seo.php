@@ -301,7 +301,13 @@ function babypasa_seo_product_brand() {
  * Task H — Magento → WooCommerce pattern redirects (301)
  *
  * No old-URL mapping export exists, so these are PATTERN-level redirects of
- * legacy Magento route families to the closest WooCommerce equivalent.
+ * the legacy Magento route families that have a TRUE WooCommerce equivalent
+ * (account, cart, checkout, orders, wishlist). Catalog/product/category/search
+ * URLs are deliberately NOT redirected — they have no 1:1 equivalent, so a
+ * redirect to a generic /shop/ page is treated by Google as a Soft 404. Letting
+ * them return a normal 404 is the cleaner signal and lets Google deindex the old
+ * Magento catalog URLs faster (post-migration cleanup).
+ *
  * Implemented in PHP (not .htaccess) so they are portable across Apache and
  * Nginx and migrate with the plugin file. Gated on is_404() so real
  * WooCommerce pages (/cart/, /checkout/, /my-account/) are never touched and
@@ -327,21 +333,13 @@ function babypasa_seo_magento_redirects() {
 		return;
 	}
 
-	// Special case: Magento catalog search -> WP search, preserving the query.
-	if ( preg_match( '#^catalogsearch/result#i', $request ) && ! empty( $_GET['q'] ) ) {
-		$term   = sanitize_text_field( wp_unslash( $_GET['q'] ) );
-		$target = home_url( '/?s=' . rawurlencode( $term ) );
-		babypasa_seo_log_redirect( $request, $target, 'catalogsearch/result' );
-		wp_safe_redirect( $target, 301 );
-		exit;
-	}
-
 	// Ordered most-specific-first. First match wins.
+	//
+	// Only routes with a genuine WooCommerce equivalent are redirected. Magento
+	// catalog/product/category/search routes are intentionally absent — they have
+	// no 1:1 target, so they fall through to a clean 404 (see header note) rather
+	// than a Soft-404-inducing redirect to /shop/.
 	$map = array(
-		'#^catalog/product/view#i'   => '/shop/',
-		'#^catalog/category/view#i'  => '/shop/',
-		'#^catalogsearch#i'          => '/shop/',
-		'#^catalog#i'                => '/shop/',
 		'#^customer/account/login#i' => '/my-account/',
 		'#^customer/account/create#i'=> '/my-account/',
 		'#^customer#i'               => '/my-account/',
@@ -349,7 +347,7 @@ function babypasa_seo_magento_redirects() {
 		'#^checkout/cart#i'          => '/cart/',
 		'#^checkout/onepage#i'       => '/checkout/',
 		'#^checkout#i'               => '/checkout/',
-		'#^wishlist#i'               => '/my-account/',
+		'#^wishlist#i'               => '/my-account/wishlist/',
 	);
 
 	$map = apply_filters( 'babypasa_seo_magento_redirect_map', $map );
