@@ -156,6 +156,13 @@ switch ( $bp_email_id ) {
 		$bp_hero_sub  = 'Your returned items for order <strong>#' . esc_html( $bp_order_num ) . '</strong> have arrived at our warehouse' . ( $bp_first_name ? ', <strong>' . esc_html( $bp_first_name ) . '</strong>' : '' ) . '. We&rsquo;re on it.';
 		break;
 
+	case 'bp_price_drop':
+		// Price-drop alert (price-drop-notification plugin). Reuses the white
+		// gift line-icon as a "deal/offer" glyph (no dedicated price-tag asset).
+		$bp_hero_icon = $bp_icon_img( 'feat-gift.png' );
+		$bp_hero_sub  = 'A product you&rsquo;re watching just got cheaper.<br />Grab it before it&rsquo;s gone!';
+		break;
+
 	case 'cancelled_order':
 	case 'failed_order':
 		$bp_hero_icon = $bp_icon_cross;
@@ -242,7 +249,7 @@ switch ( $bp_email_id ) {
 			.hero-sub              { font-size: 14px !important; }
 			.body-copy             { font-size: 14px !important; }
 			.tile-cell,
-			.tile-cell-b           { display: block !important; width: 100% !important; }
+			.tile-cell-b           { display: block !important; width: 100% !important; max-width: none !important; }
 			.tile-left,
 			.tile-left-b           { padding-right: 0 !important; padding-bottom: 10px !important; }
 			.tile-right,
@@ -252,7 +259,7 @@ switch ( $bp_email_id ) {
 			.trk-conn              { padding-top: 11px !important; }
 			.stars                 { font-size: 22px !important; letter-spacing: 2px !important; }
 			.feat-cell,
-			.feat-cell-last        { display: block !important; width: 100% !important; border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.25) !important; }
+			.feat-cell-last        { display: block !important; width: 100% !important; max-width: none !important; border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.25) !important; }
 			.feat-cell-last        { border-bottom: none !important; }
 			.cta-btn,
 			.cta-wrap              { width: 100% !important; text-align: center !important; }
@@ -302,9 +309,10 @@ switch ( $bp_email_id ) {
 				<tr>
 					<td class="hero-pad" align="center" style="background:#fce7f3;padding:<?php echo esc_attr( $bp_hero_pad ); ?>;">
 						<?php if ( $bp_hero_icon ) : ?>
-						<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto 16px;">
+						<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="52" style="width:52px;margin:0 auto 16px;">
 							<tr>
-								<td style="width:52px;height:52px;background:#ec4899;border-radius:26px;text-align:center;vertical-align:middle;">
+								<!-- HTML width/height attrs keep the badge a true 52x52 square so border-radius renders a circle; Gmail's mobile app collapses CSS-only width on a <td>, turning the badge into a vertical capsule. -->
+								<td width="52" height="52" align="center" valign="middle" style="width:52px;min-width:52px;height:52px;background:#ec4899;border-radius:26px;text-align:center;vertical-align:middle;">
 									<?php echo $bp_hero_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static emoji span markup defined above. ?>
 								</td>
 							</tr>

@@ -145,7 +145,7 @@ if ( ! function_exists( 'bp_email_payment_tips' ) ) {
 			$rows .= '<tr>'
 				. '<td style="padding:5px 0;vertical-align:top;width:24px;">'
 				. '<table border="0" cellpadding="0" cellspacing="0" role="presentation"><tr>'
-				. '<td style="width:18px;height:18px;background:#ec4899;border-radius:9px;text-align:center;vertical-align:middle;">'
+				. '<td width="18" height="18" align="center" valign="middle" style="width:18px;min-width:18px;height:18px;background:#ec4899;border-radius:9px;text-align:center;vertical-align:middle;">'
 				. '<span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:700;color:#ffffff;line-height:1;">' . esc_html( $num ) . '</span>'
 				. '</td></tr></table>'
 				. '</td>'
@@ -161,7 +161,7 @@ if ( ! function_exists( 'bp_email_payment_tips' ) ) {
 			. '<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:12px;"><tr>'
 			. '<td style="vertical-align:middle;padding-right:8px;">'
 			. '<table border="0" cellpadding="0" cellspacing="0" role="presentation"><tr>'
-			. '<td style="width:28px;height:28px;background:#ec4899;border-radius:6px;text-align:center;vertical-align:middle;">'
+			. '<td width="28" height="28" align="center" valign="middle" style="width:28px;min-width:28px;height:28px;background:#ec4899;border-radius:6px;text-align:center;vertical-align:middle;">'
 			// PNG (Gmail/Outlook strip inline SVG); absolute URL, white line-icon.
 			. '<img src="' . esc_url( get_stylesheet_directory_uri() . '/assets/images/email-icons/bank.png' ) . '" width="16" height="16" alt="" style="display:inline-block;vertical-align:middle;border:0;" />'
 			. '</td></tr></table>'

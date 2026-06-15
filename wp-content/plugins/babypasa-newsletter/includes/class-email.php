@@ -149,32 +149,36 @@ class Email {
 			? wc_placeholder_img_src( 'woocommerce_thumbnail' )
 			: '';
 
-		$cols   = count( $products );
-		$col_w  = 3 === $cols ? '32' : ( 2 === $cols ? '48' : '100' );
-		$gap    = 3 === $cols ? '2' : ( 2 === $cols ? '4' : '0' );
+		$cols  = count( $products );
+		// Per-card cap so the row fits the ~528px card body at 1/2/3 across. The
+		// cards are inline-block divs (font-size:0 wrapper kills the gaps) so they
+		// reflow to a centered vertical stack on narrow screens with NO media query
+		// — required because some clients (Gmail with a non-Google account) strip
+		// the <head> <style> and ignore @media. Outlook (no inline-block reflow)
+		// uses the [if mso] ghost table to keep its columns. The .product-col @media
+		// rule still applies as an enhancement where supported.
+		$max_w = 3 === $cols ? '168px' : ( 2 === $cols ? '252px' : '100%' );
+		$mso_w = 3 === $cols ? '33%' : ( 2 === $cols ? '50%' : '100%' );
 
-		// REPLACED: old babypasa-newsletter layout with client template design
-		// (Arial type, #1f2937 names, #ec4899 prices, #f3f4f6 borders, 8px radius image block).
-		$html  = '<table width="100%" cellpadding="0" cellspacing="0" border="0" class="product-table">' . "\n";
-		$html .= '<tr valign="top">' . "\n";
+		$html  = '<div style="font-size:0;line-height:0;text-align:center;">' . "\n";
+		$html .= '<!--[if mso]><table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><![endif]-->' . "\n";
 
-		foreach ( $products as $i => $product ) {
+		foreach ( $products as $product ) {
 			$image_id  = $product->get_image_id();
 			$image_url = $image_id
 				? (string) wp_get_attachment_image_url( $image_id, 'woocommerce_thumbnail' )
 				: $placeholder;
 
 			$price_text = wp_strip_all_tags( html_entity_decode( $product->get_price_html() ) );
-			$is_last    = ( $i === $cols - 1 );
-			$padding_r  = $is_last ? '0' : $gap . 'px';
 
-			$html .= '<td class="product-col" width="' . $col_w . '%" '
-				. 'style="vertical-align:top;width:' . $col_w . '%;padding-right:' . $padding_r . ';">' . "\n";
+			$html .= '<!--[if mso]><td width="' . $mso_w . '" valign="top"><![endif]-->' . "\n";
+			$html .= '<div class="product-col" '
+				. 'style="display:inline-block;width:100%;max-width:' . $max_w . ';vertical-align:top;box-sizing:border-box;padding:0 6px 12px;text-align:center;">' . "\n";
 
 			$html .= '<a href="' . esc_url( $product->get_permalink() ) . '" '
 				. 'style="text-decoration:none;color:inherit;display:block;">' . "\n";
 
-			$html .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" '
+			$html .= '<table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" '
 				. 'style="border:1px solid #f3f4f6;border-radius:8px;overflow:hidden;">' . "\n";
 
 			// Product image.
@@ -200,11 +204,12 @@ class Email {
 
 			$html .= '</table>' . "\n"; // inner card table
 			$html .= '</a>' . "\n";
-			$html .= '</td>' . "\n";
+			$html .= '</div>' . "\n";
+			$html .= '<!--[if mso]></td><![endif]-->' . "\n";
 		}
 
-		$html .= '</tr>' . "\n";
-		$html .= '</table>' . "\n";
+		$html .= '<!--[if mso]></tr></table><![endif]-->' . "\n";
+		$html .= '</div>' . "\n";
 
 		return $html;
 	}
@@ -256,8 +261,8 @@ body                     { margin:0; padding:0; background-color:#f3f4f6; }
 	               padding:0 0 8px !important; text-align:center !important; }
 	.cta-wrap    { width:100% !important; }
 	.cta-wrap a  { display:block !important; padding:14px 20px !important; }
-	.product-col { display:block !important; width:100% !important;
-	               padding-right:0 !important; padding-bottom:16px !important; }
+	.product-col { display:block !important; width:100% !important; max-width:none !important;
+	               padding:0 0 16px !important; }
 	.product-img { max-width:180px !important; }
 }
 </style>
@@ -275,9 +280,11 @@ body                     { margin:0; padding:0; background-color:#f3f4f6; }
 <tr>
 <td align="center" style="padding:28px 12px;">
 
-<!-- Card container 600px -->
-<table class="email-wrap" border="0" cellpadding="0" cellspacing="0" width="600" role="presentation"
-       style="background:#ffffff;border-radius:10px;overflow:hidden;">
+<!-- BABYPASA EDIT — fluid card (was fixed width="600", which forced a rigid 600px slab on mobile). Outlook ignores max-width, so the [if mso] ghost table pins it to 600px there. — will be lost on plugin update -->
+<!--[if mso]><table border="0" cellpadding="0" cellspacing="0" width="600" align="center" role="presentation"><tr><td><![endif]-->
+<!-- Card container -->
+<table class="email-wrap" border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation"
+       style="width:100%;max-width:600px;background:#ffffff;border-radius:10px;overflow:hidden;">
 
 	<!-- ═══ 1. LOGO ═════════════════════════════════════════════════════ -->
 	<tr>
@@ -424,6 +431,7 @@ body                     { margin:0; padding:0; background-color:#f3f4f6; }
 	</tr>
 
 </table>
+<!--[if mso]></td></tr></table><![endif]-->
 <!-- /card container -->
 
 <!-- Copyright below card -->
