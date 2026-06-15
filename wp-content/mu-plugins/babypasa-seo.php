@@ -329,8 +329,10 @@ function babypasa_seo_magento_redirects() {
 
 	// Special case: Magento catalog search -> WP search, preserving the query.
 	if ( preg_match( '#^catalogsearch/result#i', $request ) && ! empty( $_GET['q'] ) ) {
-		$term = sanitize_text_field( wp_unslash( $_GET['q'] ) );
-		wp_safe_redirect( home_url( '/?s=' . rawurlencode( $term ) ), 301 );
+		$term   = sanitize_text_field( wp_unslash( $_GET['q'] ) );
+		$target = home_url( '/?s=' . rawurlencode( $term ) );
+		babypasa_seo_log_redirect( $request, $target, 'catalogsearch/result' );
+		wp_safe_redirect( $target, 301 );
 		exit;
 	}
 
@@ -352,10 +354,73 @@ function babypasa_seo_magento_redirects() {
 
 	$map = apply_filters( 'babypasa_seo_magento_redirect_map', $map );
 
-	foreach ( $map as $pattern => $target ) {
+	foreach ( $map as $pattern => $path ) {
 		if ( preg_match( $pattern, $request ) ) {
-			wp_safe_redirect( home_url( $target ), 301 );
+			$target = home_url( $path );
+			babypasa_seo_log_redirect( $request, $target, $pattern );
+			wp_safe_redirect( $target, 301 );
 			exit;
 		}
 	}
+}
+
+/**
+ * Appends one line to a dedicated redirect log — independent of WP_DEBUG.
+ *
+ * Writes to wp-content/uploads/babypasa-logs/redirects-<hash>.log. The directory
+ * is created with an .htaccess deny + empty index.html, and the filename carries
+ * a salted hash so it is not guessable (defence-in-depth — on Nginx, also ensure
+ * /wp-content/uploads/babypasa-logs/ is not directly served). Logging never
+ * breaks a redirect: any failure (uploads not writable, etc.) bails silently.
+ *
+ * Disable entirely:  add_filter( 'babypasa_seo_log_redirects', '__return_false' );
+ *
+ * @param string $from    Requested (old) path, relative to the WP root.
+ * @param string $to      Resolved redirect target URL.
+ * @param string $pattern Matched rule (regex or label).
+ * @return void
+ */
+function babypasa_seo_log_redirect( $from, $to, $pattern ) {
+	if ( ! apply_filters( 'babypasa_seo_log_redirects', true ) ) {
+		return;
+	}
+
+	$uploads = wp_upload_dir();
+	if ( ! empty( $uploads['error'] ) || empty( $uploads['basedir'] ) ) {
+		return; // Never break the redirect over a log write.
+	}
+
+	$dir = trailingslashit( $uploads['basedir'] ) . 'babypasa-logs';
+
+	if ( ! is_dir( $dir ) ) {
+		if ( ! wp_mkdir_p( $dir ) ) {
+			return;
+		}
+		// Block direct web access (Apache 2.4 + 2.2) and directory listing.
+		@file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions, WordPress.PHP.NoSilencedErrors
+			$dir . '/.htaccess',
+			"<IfModule mod_authz_core.c>\nRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\nOrder allow,deny\nDeny from all\n</IfModule>\n"
+		);
+		@file_put_contents( $dir . '/index.html', '' ); // phpcs:ignore WordPress.WP.AlternativeFunctions, WordPress.PHP.NoSilencedErrors
+	}
+
+	$salt = defined( 'AUTH_KEY' ) ? AUTH_KEY : 'babypasa';
+	$file = $dir . '/redirects-' . substr( md5( 'babypasa-redirects' . $salt ), 0, 12 ) . '.log';
+
+	$ip  = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '-';
+	$ref = isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '-';
+	$ua  = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '-';
+
+	$line = sprintf(
+		"[%s] %s 301 \"/%s\" -> \"%s\" matched=%s ref=\"%s\" ua=\"%s\"\n",
+		current_time( 'mysql' ),
+		$ip,
+		$from,
+		$to,
+		$pattern,
+		$ref ? $ref : '-',
+		$ua
+	);
+
+	@file_put_contents( $file, $line, FILE_APPEND | LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions, WordPress.PHP.NoSilencedErrors
 }
