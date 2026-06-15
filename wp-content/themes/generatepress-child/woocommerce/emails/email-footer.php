@@ -92,6 +92,7 @@ $email = $email ?? null;
 				</tr>
 
 			</table>
+			<!--[if mso]></td></tr></table><![endif]-->
 			<!-- /EMAIL CARD -->
 
 			<p style="margin:14px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#9ca3af;text-align:center;">

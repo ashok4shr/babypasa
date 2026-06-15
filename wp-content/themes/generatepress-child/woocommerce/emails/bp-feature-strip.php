@@ -12,6 +12,10 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+// Absolute PNG icon base. Inline SVGs are stripped by Gmail/Outlook, so the
+// feature glyphs ship as white line-icon PNGs (rendered from the original SVGs).
+$bp_icons_uri = esc_url( get_stylesheet_directory_uri() . '/assets/images/email-icons/' );
 ?>
 <!-- FEATURE STRIP (client design) -->
 <tr>
@@ -19,12 +23,7 @@ defined( 'ABSPATH' ) || exit;
 		<table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation">
 			<tr>
 				<td class="feat-cell" style="width:33.33%;text-align:center;padding:20px 12px;vertical-align:top;border-right:1px solid rgba(255,255,255,0.25);">
-					<svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;margin-bottom:8px;" aria-hidden="true">
-						<rect x="1" y="6" width="13" height="10" rx="1" stroke="#ffffff" stroke-width="1.6" fill="none"/>
-						<path d="M14 9h4.5L21 12.5V16H14V9Z" stroke="#ffffff" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
-						<circle cx="5.5" cy="17.5" r="1.5" fill="#ffffff"/>
-						<circle cx="17.5" cy="17.5" r="1.5" fill="#ffffff"/>
-					</svg>
+					<img src="<?php echo $bp_icons_uri; // already escaped. ?>feat-truck.png" width="28" height="28" alt="" style="display:inline-block;margin-bottom:8px;border:0;" />
 					<p class="feat-title" style="margin:0 0 4px;font-size:10px;font-weight:700;color:#ffffff;text-transform:uppercase;letter-spacing:0.5px;font-family:Arial,Helvetica,sans-serif;">
 						Delivery all over Nepal
 					</p>
@@ -33,13 +32,7 @@ defined( 'ABSPATH' ) || exit;
 					</p>
 				</td>
 				<td class="feat-cell" style="width:33.34%;text-align:center;padding:20px 12px;vertical-align:top;border-right:1px solid rgba(255,255,255,0.25);">
-					<svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;margin-bottom:8px;" aria-hidden="true">
-						<rect x="3" y="9" width="18" height="12" rx="1" stroke="#ffffff" stroke-width="1.6" fill="none"/>
-						<rect x="3" y="6" width="18" height="3" rx="0.5" stroke="#ffffff" stroke-width="1.6" fill="none"/>
-						<line x1="12" y1="6" x2="12" y2="21" stroke="#ffffff" stroke-width="1.4"/>
-						<path d="M9 6C9 6 8 3 11 3s3 3 1 3" stroke="#ffffff" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-						<path d="M15 6C15 6 16 3 13 3s-3 3-1 3" stroke="#ffffff" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-					</svg>
+					<img src="<?php echo $bp_icons_uri; // already escaped. ?>feat-gift.png" width="28" height="28" alt="" style="display:inline-block;margin-bottom:8px;border:0;" />
 					<p class="feat-title" style="margin:0 0 4px;font-size:10px;font-weight:700;color:#ffffff;text-transform:uppercase;letter-spacing:0.5px;font-family:Arial,Helvetica,sans-serif;">
 						Gift on your behalf
 					</p>
@@ -48,10 +41,7 @@ defined( 'ABSPATH' ) || exit;
 					</p>
 				</td>
 				<td class="feat-cell-last" style="width:33.33%;text-align:center;padding:20px 12px;vertical-align:top;">
-					<svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;margin-bottom:8px;" aria-hidden="true">
-						<path d="M12 3L4 6.5V12c0 4.5 3.3 8.3 8 9.5 4.7-1.2 8-5 8-9.5V6.5L12 3Z" stroke="#ffffff" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
-						<path d="M8.5 12l2.5 2.5 4.5-4.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-					</svg>
+					<img src="<?php echo $bp_icons_uri; // already escaped. ?>shield-check.png" width="28" height="28" alt="" style="display:inline-block;margin-bottom:8px;border:0;" />
 					<p class="feat-title" style="margin:0 0 4px;font-size:10px;font-weight:700;color:#ffffff;text-transform:uppercase;letter-spacing:0.5px;font-family:Arial,Helvetica,sans-serif;">
 						Hassle-free shopping
 					</p>

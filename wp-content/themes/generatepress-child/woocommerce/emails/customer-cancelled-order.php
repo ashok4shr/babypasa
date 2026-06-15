@@ -90,10 +90,7 @@ if ( $order->is_paid() ) :
 							<table border="0" cellpadding="0" cellspacing="0" role="presentation">
 								<tr>
 									<td style="width:28px;height:28px;background:#ec4899;border-radius:6px;text-align:center;vertical-align:middle;">
-										<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">
-											<path d="M1 4v6h6" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-											<path d="M3.51 15a9 9 0 102.13-9.36L1 10" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-										</svg>
+										<img src="<?php echo esc_url( get_stylesheet_directory_uri() . '/assets/images/email-icons/refund.png' ); ?>" width="15" height="15" alt="" style="display:inline-block;vertical-align:middle;border:0;" />
 									</td>
 								</tr>
 							</table>

@@ -85,10 +85,27 @@ All order meta is read/written via **WooCommerce CRUD** (`$order->get_meta()` / 
 All other statuses: order note + customer email only (no WC status change).  
 Guard: `on-hold` is never applied when current WC status is `completed`, `cancelled`, or `refunded`.
 
-### Customer email (`NOTABLE_STATUSES`)
+### Customer journey email (atomic, forward-only)
 
-Email fires for: `dispatched-with-rider`, `out-for-delivery`, `delivered`, `failed-pickup`, `on-field-failed-delivery`, `cancelled`, `returned-to-vendor`, `loss-and-damage`, `hold`, `partially-delivered`.  
-Toggle: `upaya_webhook_notify_customer` option (default `yes`).
+The four journey emails — E06 `picked-up-by-rider`, E07 `in-transit(-to-hub)`,
+E11 `out-for-delivery`/`dispatched-with-rider`, E12 `delivered` — all send via
+`UPAYA_Webhook_Processor::maybe_send_journey_email()` behind ONE forward-only
+gate. The gate is an **atomic compare-and-swap** on `wp_upaya_orders.email_rank`
+(`JOURNEY_RANKS`: picked-up=2, in-transit=3, out-for-delivery=4, delivered=5):
+a single `UPDATE … SET email_rank=N WHERE wc_order_id=X AND email_rank<N` — only
+the request that moves the rank strictly forward sends. This serialises
+concurrent/retried/out-of-order webhooks (InnoDB row lock), so a stale stage
+(e.g. a late "in transit") can never email after a later one ("delivered") and
+duplicates no-op. `'cancelled'` emails via WooCommerce's own
+customer-cancelled-order email (`STATUS_MAP`), not here.
+
+`_upaya_email_state` order meta is advanced separately (forward-only) for on-site
+tracking + the E10/E14 handlers. Toggle: `upaya_webhook_notify_customer` (default `yes`).
+
+The `email_rank` column is added on activation and self-heals on update via
+`upaya_maybe_upgrade_db()` (`plugins_loaded`, gated by the autoloaded
+`upaya_email_rank_added` option). **These webhook-processor edits + the column
+are lost on a plugin update — re-apply them** (they carry NOTE comments).
 
 ### Full Upaya status vocabulary (from Magento reference + API docs)
 
@@ -116,7 +133,7 @@ add_filter( 'bp_upaya_tracking_url', fn( $url, $code, $order ) => "https://examp
 
 **New checkout field:** Add to `modify_checkout_fields()` → save in `save_checkout_fields()` → show in `display_fields_in_admin()` (admin) + `display_fields_in_order_details()` (customer order page) + `add_fields_to_emails()` (emails) → add to `build_payloads()` if it goes to Upaya.
 
-**New Upaya status:** Add to `STATUS_MESSAGES`, add WC mapping to `STATUS_MAP` if it needs a status change, add to `NOTABLE_STATUSES` if it warrants a customer email.
+**New Upaya status:** Add to `STATUS_MESSAGES`, add WC mapping to `STATUS_MAP` if it needs a status change. For a customer journey email, add the slug to `JOURNEY_STATE_BY_STATUS` (mapped to a state in `JOURNEY_RANKS`) — it then emails via the atomic forward-only gate automatically.
 
 **Flush location cache:** WooCommerce → Settings → Shipping → Upaya Cargo → "Flush Location Cache", or programmatically: `(new UPAYA_Location_Cache($api,$logger))->flush()`.
 

@@ -33,10 +33,7 @@ $show_shipping = ! wc_ship_to_billing_address_only() && $order->needs_shipping_a
 						<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:10px;">
 							<tr>
 								<td style="width:20px;vertical-align:middle;padding-right:6px;">
-									<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-										<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke="#ec4899" stroke-width="1.8" fill="none"/>
-										<circle cx="12" cy="9" r="2.5" stroke="#ec4899" stroke-width="1.6" fill="none"/>
-									</svg>
+									<img src="<?php echo esc_url( get_stylesheet_directory_uri() . '/assets/images/email-icons/pin-line-pink.png' ); ?>" width="15" height="15" alt="" style="display:inline-block;vertical-align:middle;border:0;" />
 								</td>
 								<td class="tile-label" style="font-size:10px;font-weight:700;color:#9d174d;text-transform:uppercase;letter-spacing:0.5px;font-family:Arial,Helvetica,sans-serif;">
 									<?php esc_html_e( 'Shipping address', 'woocommerce' ); ?>
@@ -80,12 +77,7 @@ $show_shipping = ! wc_ship_to_billing_address_only() && $order->needs_shipping_a
 						<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:10px;">
 							<tr>
 								<td style="width:20px;vertical-align:middle;padding-right:6px;">
-									<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-										<rect x="4" y="2" width="16" height="20" rx="2" stroke="#ec4899" stroke-width="1.8" fill="none"/>
-										<line x1="8" y1="8" x2="16" y2="8" stroke="#ec4899" stroke-width="1.4"/>
-										<line x1="8" y1="12" x2="16" y2="12" stroke="#ec4899" stroke-width="1.4"/>
-										<line x1="8" y1="16" x2="12" y2="16" stroke="#ec4899" stroke-width="1.4"/>
-									</svg>
+									<img src="<?php echo esc_url( get_stylesheet_directory_uri() . '/assets/images/email-icons/doc-pink.png' ); ?>" width="15" height="15" alt="" style="display:inline-block;vertical-align:middle;border:0;" />
 								</td>
 								<td class="tile-label" style="font-size:10px;font-weight:700;color:#9d174d;text-transform:uppercase;letter-spacing:0.5px;font-family:Arial,Helvetica,sans-serif;">
 									<?php esc_html_e( 'Billing address', 'woocommerce' ); ?>

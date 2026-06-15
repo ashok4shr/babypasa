@@ -27,7 +27,7 @@ img                      { border: 0; outline: none; text-decoration: none; -ms-
 body                     { margin: 0; padding: 0; background-color: #f3f4f6; }
 
 /* ── Layout ── */
-.email-wrap              { width: 600px; }
+.email-wrap              { width: 100%; max-width: 600px; }
 .logo-pad                { padding: 24px 36px 18px; }
 .hero-pad                { padding: 32px 36px; }
 .section-pad             { padding: 24px 36px 0; }
@@ -106,7 +106,7 @@ body                     { margin: 0; padding: 0; background-color: #f3f4f6; }
    MOBILE (≤ 480px)
    ══════════════════════════════════════ */
 @media only screen and (max-width: 480px) {
-	.email-wrap            { width: 100% !important; }
+	.email-wrap            { width: 100% !important; max-width: 100% !important; }
 	.logo-pad              { padding: 20px 16px 14px !important; }
 	.hero-pad              { padding: 26px 16px !important; }
 	.section-pad           { padding: 16px 16px 0 !important; }

@@ -106,9 +106,7 @@ $bp_refund_note   = bp_email_refund_note( $order );
 			<table border="0" cellpadding="0" cellspacing="0" role="presentation">
 				<tr>
 					<td style="width:36px;height:36px;background:#ec4899;border-radius:18px;text-align:center;vertical-align:middle;">
-						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">
-							<path d="M12 21C12 21 3 14.5 3 8.5A5 5 0 0112 6a5 5 0 019 2.5C21 14.5 12 21 12 21z" stroke="#ffffff" stroke-width="2" fill="none" stroke-linejoin="round"/>
-						</svg>
+						<img src="<?php echo esc_url( get_stylesheet_directory_uri() . '/assets/images/email-icons/heart.png' ); ?>" width="18" height="18" alt="" style="display:inline-block;vertical-align:middle;border:0;" />
 					</td>
 				</tr>
 			</table>
