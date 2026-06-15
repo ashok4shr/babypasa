@@ -297,13 +297,13 @@ $bp_steps = array(
 <!-- ══════════════════════════════════
      PAYMENT + DELIVERY PARTNER TILES (client E11/E12)
      ══════════════════════════════════ -->
-<table border="0" cellpadding="0" cellspacing="0"
-       width="100%" role="presentation" style="margin:0 0 14px;">
-	<tr>
+<!-- Hybrid 2-up tiles: inline-block divs stack on narrow screens with NO media query. -->
+<div style="font-size:0;margin:0 0 14px;text-align:left;">
+	<!--[if mso]><table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation"><tr><td width="50%" valign="top"><![endif]-->
 
 		<!-- Payment -->
-		<td class="tile-cell tile-left"
-		    style="width:50%;vertical-align:top;padding-right:6px;">
+		<div class="tile-cell tile-left"
+		    style="display:inline-block;width:100%;max-width:260px;vertical-align:top;box-sizing:border-box;padding-right:6px;">
 			<table border="0" cellpadding="0" cellspacing="0"
 			       width="100%" role="presentation">
 				<tr>
@@ -359,11 +359,11 @@ $bp_steps = array(
 					</td>
 				</tr>
 			</table>
-		</td>
+		</div><!--[if mso]></td><td width="50%" valign="top"><![endif]-->
 
 		<!-- Delivery Partner (E11) / Delivered By (E12) -->
-		<td class="tile-cell tile-right"
-		    style="width:50%;vertical-align:top;padding-left:6px;">
+		<div class="tile-cell tile-right"
+		    style="display:inline-block;width:100%;max-width:260px;vertical-align:top;box-sizing:border-box;padding-left:6px;">
 			<table border="0" cellpadding="0" cellspacing="0"
 			       width="100%" role="presentation">
 				<tr>
@@ -410,10 +410,9 @@ $bp_steps = array(
 					</td>
 				</tr>
 			</table>
-		</td>
-
-	</tr>
-</table>
+		</div>
+	<!--[if mso]></td></tr></table><![endif]-->
+</div>
 
 <!-- ══════════════════════════════════
      ORDER ITEMS (client E11/E12)
