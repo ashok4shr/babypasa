@@ -196,6 +196,80 @@ switch ( $bp_email_id ) {
 		<o:PixelsPerInch>96</o:PixelsPerInch>
 	</o:OfficeDocumentSettings></xml></noscript>
 	<![endif]-->
+	<?php
+	/*
+	 * Responsive layer, hard-coded in <head>.
+	 *
+	 * WooCommerce's CSS inliner DOES preserve @media blocks, but it re-injects
+	 * them only at send time — and a mail transport that re-parses the body
+	 * (e.g. the ZeptoMail / SMTP mailer plugins) can drop that injected <style>,
+	 * which is why mobile breaks on real clients while the WC preview looks fine.
+	 * Shipping the @media rules verbatim here guarantees the mobile layout
+	 * survives regardless of the inliner/transport. @media rules cannot be
+	 * inlined onto elements, so the inliner leaves this block untouched.
+	 *
+	 * KEEP IN SYNC with the @media blocks in emails/email-styles.php (single
+	 * source for the inlined base rules; this is the transport-proof copy).
+	 * The fluid/hybrid wrapper below is the no-media-query fallback for clients
+	 * that ignore @media entirely (Outlook desktop).
+	 */
+	?>
+	<style type="text/css">
+		/* ── TABLET (481px – 768px) ── */
+		@media only screen and (min-width: 481px) and (max-width: 768px) {
+			.email-wrap            { width: 100% !important; }
+			.logo-pad              { padding: 22px 24px 14px !important; }
+			.hero-pad              { padding: 28px 24px !important; }
+			.section-pad           { padding: 20px 24px 0 !important; }
+			.body-pad              { padding: 20px 24px !important; }
+			.bp-body               { padding: 20px 24px !important; }
+			.footer-pad            { padding: 18px 24px 22px !important; }
+			.feat-title            { font-size: 9px !important; }
+			.feat-sub              { font-size: 9px !important; }
+			.trk-label,
+			.trk-label-dim         { font-size: 9px !important; }
+		}
+		/* ── MOBILE (≤ 480px) ── */
+		@media only screen and (max-width: 480px) {
+			.email-wrap            { width: 100% !important; max-width: 100% !important; }
+			.logo-pad              { padding: 20px 16px 14px !important; }
+			.hero-pad              { padding: 26px 16px !important; }
+			.section-pad           { padding: 16px 16px 0 !important; }
+			.body-pad              { padding: 16px !important; }
+			.bp-body               { padding: 16px !important; }
+			.footer-pad            { padding: 18px 16px 22px !important; }
+			.hero-h1               { font-size: 19px !important; }
+			.hero-sub              { font-size: 14px !important; }
+			.body-copy             { font-size: 14px !important; }
+			.tile-cell,
+			.tile-cell-b           { display: block !important; width: 100% !important; }
+			.tile-left,
+			.tile-left-b           { padding-right: 0 !important; padding-bottom: 10px !important; }
+			.tile-right,
+			.tile-right-b          { padding-left: 0 !important; }
+			.trk-label,
+			.trk-label-dim         { font-size: 9px !important; }
+			.trk-conn              { padding-top: 11px !important; }
+			.stars                 { font-size: 22px !important; letter-spacing: 2px !important; }
+			.feat-cell,
+			.feat-cell-last        { display: block !important; width: 100% !important; border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.25) !important; }
+			.feat-cell-last        { border-bottom: none !important; }
+			.cta-btn,
+			.cta-wrap              { width: 100% !important; text-align: center !important; }
+			.cta-btn a,
+			.cta-wrap a            { display: block !important; padding: 14px 20px !important; }
+			.social-td             { display: block !important; width: 100% !important; padding: 0 0 8px !important; text-align: center !important; }
+			.order-hdr-num         { display: block !important; }
+			.order-hdr-date        { display: block !important; font-size: 11px !important; margin-top: 2px; }
+			.item-row td           { padding: 10px 12px !important; }
+			.price-col             { display: none !important; }
+			.banner-icon-td        { display: block !important; text-align: center !important; padding-bottom: 10px !important; }
+			.banner-text-td        { display: block !important; text-align: center !important; }
+			.refund-icon-td        { display: none !important; }
+			.product-icon-td       { display: none !important; }
+			.thankyou-icon-td      { display: none !important; }
+		}
+	</style>
 </head>
 <body style="margin:0;padding:0;background-color:#f3f4f6;">
 
@@ -203,7 +277,9 @@ switch ( $bp_email_id ) {
 	<tr>
 		<td align="center" style="padding:28px 12px;">
 
-			<table class="email-wrap" border="0" cellpadding="0" cellspacing="0" width="600" role="presentation" style="background:#ffffff;border-radius:10px;overflow:hidden;">
+			<!-- Outlook (desktop) ignores @media + max-width — this ghost table pins it to 600px so desktop is unchanged. -->
+				<!--[if mso]><table border="0" cellpadding="0" cellspacing="0" width="600" align="center" role="presentation"><tr><td><![endif]-->
+				<table class="email-wrap" border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation" style="width:100%;max-width:600px;background:#ffffff;border-radius:10px;overflow:hidden;">
 
 				<!-- 1. LOGO -->
 				<tr>

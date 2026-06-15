@@ -95,6 +95,7 @@ function upaya_activate(): void {
 		response        LONGTEXT,
 		attempts        TINYINT DEFAULT 0,
 		last_attempt    DATETIME DEFAULT NULL,
+		email_rank      SMALLINT NOT NULL DEFAULT 0,
 		created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY  (id),
 		UNIQUE KEY wc_order_id (wc_order_id),
@@ -107,6 +108,35 @@ function upaya_activate(): void {
 	update_option( 'upaya_db_version', UPAYA_VERSION );
 }
 register_activation_hook( UPAYA_PLUGIN_FILE, 'upaya_activate' );
+
+/**
+ * Self-healing schema migration for installs updated via `git pull` (where the
+ * activation hook does not re-run). Adds the email_rank column used by the
+ * forward-only, atomic delivery-status email guard in UPAYA_Webhook_Processor.
+ *
+ * Runs at most one real query per install: the autoloaded flag short-circuits
+ * every subsequent request once the column is present.
+ *
+ * @return void
+ */
+function upaya_maybe_upgrade_db(): void {
+	if ( 'yes' === get_option( 'upaya_email_rank_added' ) ) {
+		return;
+	}
+
+	global $wpdb;
+	$table = $wpdb->prefix . 'upaya_orders';
+
+	// Only touch a table that actually exists (avoids errors pre-activation).
+	if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table ) {
+		$has_col = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM `{$table}` LIKE %s", 'email_rank' ) );
+		if ( null === $has_col ) {
+			$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN email_rank SMALLINT NOT NULL DEFAULT 0" );
+		}
+		update_option( 'upaya_email_rank_added', 'yes', true );
+	}
+}
+add_action( 'plugins_loaded', 'upaya_maybe_upgrade_db', 5 );
 
 /* --------------------------------------------------------------------------
  * Deactivation

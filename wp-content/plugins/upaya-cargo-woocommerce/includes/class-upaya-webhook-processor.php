@@ -84,36 +84,23 @@ class UPAYA_Webhook_Processor {
 	private const TERMINAL_STATUSES = [ 'completed', 'cancelled', 'refunded' ];
 
 	/**
-	 * Statuses for which the customer should receive an email notification.
+	 * Journey email state machine (client DEV_NOTE_E06 tracker logic).
 	 *
 	 * NOTE: This file was edited directly inside the plugin.
 	 * Re-apply changes after any upaya-cargo-woocommerce plugin update.
 	 *
-	 * 2026-06 email redesign: the Upaya status email now fires only for
-	 * out-for-delivery (incl. dispatched-with-rider) and delivered — the two
-	 * states with client-designed templates (E11/E12). 'cancelled' is handled
-	 * by WooCommerce's own customer-cancelled-order email via STATUS_MAP, so
-	 * it is intentionally absent here to avoid double-emailing. All other
-	 * statuses produce an order note only.
-	 */
-	private const NOTABLE_STATUSES = [
-		'dispatched-with-rider',
-		'out-for-delivery',
-		'delivered',
-	];
-
-	/**
-	 * Journey email state machine (client DEV_NOTE_E06 tracker logic).
+	 * 2026-06 email redesign + ordering fix: the four journey emails
+	 * (E06 picked-up, E07 in-transit, E11 out-for-delivery, E12 delivered) are
+	 * ALL sent through one forward-only gate — see maybe_send_journey_email().
+	 * That gate uses an ATOMIC compare-and-swap on the wp_upaya_orders.email_rank
+	 * column, so concurrent / retried / out-of-order webhooks are serialised by
+	 * the row lock and a stale stage (e.g. a late "in transit") can never email
+	 * after the order has already emailed a later stage (e.g. "delivered").
+	 * 'cancelled' is handled by WooCommerce's own customer-cancelled-order email
+	 * via STATUS_MAP and is intentionally not emailed here (no double-email).
 	 *
-	 * Maps the journey webhook statuses to a forward-only state stored in the
-	 * `_upaya_email_state` order meta, so each journey email fires exactly once
-	 * even though Upaya repeats the in-transit/hub events as the parcel passes
-	 * through every hub. Forward-only ranking also stops a late in-transit (or a
-	 * backward RTO event) from re-firing an earlier email.
-	 *
-	 * E06 (PICKED_UP) and E07 (IN_TRANSIT) send through this machine; the other
-	 * states are tracked purely to gate them. OUT_FOR_DELIVERY (E11) and
-	 * DELIVERED (E12) still email via NOTABLE_STATUSES above.
+	 * `_upaya_email_state` order meta is still advanced forward-only below as a
+	 * separate concern — it feeds on-site tracking and the E10/E14 handlers.
 	 *
 	 * @var string
 	 */
@@ -226,22 +213,23 @@ class UPAYA_Webhook_Processor {
 			);
 		}
 
-		// ── Send customer email for notable statuses ───────────────────────
-		if (
-			in_array( $upaya_status, self::NOTABLE_STATUSES, true )
-			&& 'yes' === get_option( 'upaya_webhook_notify_customer', 'yes' )
-		) {
-			$this->send_status_email( $order, $upaya_status, $tracking_code, $readable );
-		}
+		// ── Advance the forward-only journey-state meta ────────────────────
+		// Meta only (feeds on-site tracking + the E10/E14 handlers). The email
+		// decision is made separately, atomically, below.
+		$this->advance_journey_state( $order, $upaya_status );
 
-		// ── Advance the journey state machine + fire E07 (In Transit) once ──
-		$this->advance_journey_state( $order, $upaya_status, $tracking_code, $readable );
+		// ── Send the customer journey email behind an atomic forward-only guard
+		//    (E06/E07/E11/E12). A stale/duplicate/out-of-order webhook can never
+		//    email a stage the order has already advanced past. ──────────────
+		if ( 'yes' === get_option( 'upaya_webhook_notify_customer', 'yes' ) ) {
+			$this->maybe_send_journey_email( $order, $upaya_status, $tracking_code, $readable );
+		}
 
 		/**
 		 * Decoupling hook for downstream handlers (the babypasa-returns plugin
 		 * uses it to drive the E16/E17/E20 return-flow emails + RTO state
-		 * machine). Fires for EVERY processed status — including ones not in
-		 * NOTABLE_STATUSES — so handlers can react to return/RTO statuses.
+		 * machine). Fires for EVERY processed status — including non-journey and
+		 * return/RTO statuses — so downstream handlers can react to all of them.
 		 *
 		 * NOTE: This do_action was added directly inside the plugin.
 		 * Re-apply it after any upaya-cargo-woocommerce plugin update.
@@ -272,20 +260,17 @@ class UPAYA_Webhook_Processor {
 	 * ------------------------------------------------------------------ */
 
 	/**
-	 * Advances the forward-only journey state and sends E07 (In Transit) the
-	 * first time the order reaches IN_TRANSIT. See client DEV_NOTE_E06/E07.
+	 * Advances the forward-only `_upaya_email_state` order meta (meta only — the
+	 * email is dispatched by maybe_send_journey_email()). Upaya repeats the
+	 * in-transit/hub events for every hub the parcel passes through; the rank
+	 * check keeps the stored state monotonic and ignores backward (RTO) events,
+	 * so on-site tracking + the E10/E14 handlers see a clean, forward-only state.
 	 *
-	 * Upaya repeats the in-transit/hub events for every hub the parcel passes
-	 * through; the rank check guarantees E07 emails exactly once and ignores
-	 * duplicate or out-of-order (RTO) events.
-	 *
-	 * @param  \WC_Order $order         WooCommerce order.
-	 * @param  string    $upaya_status  Upaya status slug.
-	 * @param  string    $tracking_code Upaya tracking code.
-	 * @param  string    $readable      Human-readable status string.
+	 * @param  \WC_Order $order        WooCommerce order.
+	 * @param  string    $upaya_status Upaya status slug.
 	 * @return void
 	 */
-	private function advance_journey_state( \WC_Order $order, string $upaya_status, string $tracking_code, string $readable ): void {
+	private function advance_journey_state( \WC_Order $order, string $upaya_status ): void {
 		$new_state = self::JOURNEY_STATE_BY_STATUS[ $upaya_status ] ?? '';
 		if ( '' === $new_state ) {
 			return; // Not a journey status — nothing to advance.
@@ -297,26 +282,98 @@ class UPAYA_Webhook_Processor {
 
 		// Forward-only: ignore duplicate and backward (RTO) events.
 		if ( $new_rank <= $current_rank ) {
-			$this->logger->debug(
-				"Upaya webhook: order #{$order->get_id()} journey state '{$new_state}' (rank {$new_rank}) not ahead of '{$current_state}' (rank {$current_rank}) — no advance/email."
-			);
 			return;
 		}
 
 		$order->update_meta_data( self::JOURNEY_STATE_META, $new_state );
 		$order->save();
+	}
 
-		// E06 (PICKED_UP) and E07 (IN_TRANSIT) send through the state machine;
-		// OUT_FOR_DELIVERY (E11) / DELIVERED (E12) still email via NOTABLE_STATUSES.
-		if (
-			in_array( $new_state, array( 'PICKED_UP', 'IN_TRANSIT' ), true )
-			&& 'yes' === get_option( 'upaya_webhook_notify_customer', 'yes' )
-		) {
-			$this->logger->debug(
-				"Upaya webhook: order #{$order->get_id()} reached {$new_state} — sending journey email."
-			);
-			$this->send_status_email( $order, $upaya_status, $tracking_code, $readable );
+	/**
+	 * Sends the customer journey email (E06/E07/E11/E12) behind a single
+	 * forward-only, ATOMIC guard.
+	 *
+	 * NOTE: This method was added directly inside the plugin.
+	 * Re-apply it after any upaya-cargo-woocommerce plugin update.
+	 *
+	 * The guard is an atomic compare-and-swap on wp_upaya_orders.email_rank
+	 * (see claim_email_rank()). Only the request that pushes email_rank strictly
+	 * forward sends, so:
+	 *   - duplicate / retried webhooks no-op (rank already claimed);
+	 *   - a stale or out-of-order webhook (e.g. a late "in transit") can never
+	 *     email after a later stage ("delivered") has already emailed, because
+	 *     its lower rank fails the `email_rank < N` test;
+	 *   - concurrent webhooks are serialised by the InnoDB row lock, so the
+	 *     claims (and therefore the sends) resolve in rank order.
+	 *
+	 * @param  \WC_Order $order         WooCommerce order.
+	 * @param  string    $upaya_status  Upaya status slug.
+	 * @param  string    $tracking_code Upaya tracking code.
+	 * @param  string    $readable      Human-readable status string.
+	 * @return void
+	 */
+	private function maybe_send_journey_email( \WC_Order $order, string $upaya_status, string $tracking_code, string $readable ): void {
+		$state = self::JOURNEY_STATE_BY_STATUS[ $upaya_status ] ?? '';
+		$rank  = '' !== $state ? ( self::JOURNEY_RANKS[ $state ] ?? 0 ) : 0;
+
+		if ( $rank <= 0 ) {
+			return; // Not an emailing journey status.
 		}
+
+		if ( ! $this->claim_email_rank( $order->get_id(), $rank ) ) {
+			$this->logger->debug(
+				"Upaya webhook: order #{$order->get_id()} email stage '{$state}' (rank {$rank}) not claimed — an equal/later stage already emailed. Skipping (out-of-order/duplicate guard)."
+			);
+			return;
+		}
+
+		$this->logger->debug(
+			"Upaya webhook: order #{$order->get_id()} claimed email rank {$rank} ({$state}) — sending journey email."
+		);
+		$this->send_status_email( $order, $upaya_status, $tracking_code, $readable );
+	}
+
+	/**
+	 * Atomically claims an email rank for an order.
+	 *
+	 * Returns true only if this call advanced wp_upaya_orders.email_rank from a
+	 * lower value to $rank — a single UPDATE … WHERE email_rank < $rank, which is
+	 * atomic under the row lock. A row always exists by this point (process()
+	 * upserts it via update_db_record() first); the insert is a defensive
+	 * fallback for the theoretical missing-row case.
+	 *
+	 * @param  int $order_id WooCommerce order ID.
+	 * @param  int $rank     Journey rank to claim (JOURNEY_RANKS value).
+	 * @return bool True if this call won the rank (caller should send the email).
+	 */
+	private function claim_email_rank( int $order_id, int $rank ): bool {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'upaya_orders';
+
+		$exists = $wpdb->get_var(
+			$wpdb->prepare( "SELECT id FROM {$table} WHERE wc_order_id = %d", $order_id )
+		);
+
+		if ( ! $exists ) {
+			$inserted = $wpdb->insert(
+				$table,
+				[ 'wc_order_id' => $order_id, 'email_rank' => $rank ],
+				[ '%d', '%d' ]
+			);
+			return (bool) $inserted; // First row created → this stage wins.
+		}
+
+		$affected = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table} SET email_rank = %d WHERE wc_order_id = %d AND email_rank < %d",
+				$rank,
+				$order_id,
+				$rank
+			)
+		);
+
+		return ( 1 === (int) $affected );
 	}
 
 	/**

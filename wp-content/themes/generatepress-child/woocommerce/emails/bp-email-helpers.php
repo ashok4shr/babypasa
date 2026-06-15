@@ -162,10 +162,8 @@ if ( ! function_exists( 'bp_email_payment_tips' ) ) {
 			. '<td style="vertical-align:middle;padding-right:8px;">'
 			. '<table border="0" cellpadding="0" cellspacing="0" role="presentation"><tr>'
 			. '<td style="width:28px;height:28px;background:#ec4899;border-radius:6px;text-align:center;vertical-align:middle;">'
-			. '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;">'
-			. '<path d="M3 21h18M3 10h18M5 6l7-3 7 3" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
-			. '<path d="M5 10v11M9 10v11M15 10v11M19 10v11" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/>'
-			. '</svg>'
+			// PNG (Gmail/Outlook strip inline SVG); absolute URL, white line-icon.
+			. '<img src="' . esc_url( get_stylesheet_directory_uri() . '/assets/images/email-icons/bank.png' ) . '" width="16" height="16" alt="" style="display:inline-block;vertical-align:middle;border:0;" />'
 			. '</td></tr></table>'
 			. '</td>'
 			. '<td style="vertical-align:middle;">'
