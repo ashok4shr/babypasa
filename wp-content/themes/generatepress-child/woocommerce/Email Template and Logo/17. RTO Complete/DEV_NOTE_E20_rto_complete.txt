@@ -1,0 +1,178 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E20 RTO Complete (Parcel Returned to Warehouse)
+====================================================================
+
+TRIGGER
+-------
+Webhook status : "RTO Complete"
+State transition: RTO → RTO_COMPLETE
+Meta update     : update_post_meta( $order_id,
+                      '_upaya_email_state', 'RTO_COMPLETE' )
+
+  // In webhook handler:
+  if ( str_contains( $status, 'RTO Complete' ) ) {
+      $current = get_post_meta(
+          $order_id, '_upaya_email_state', true );
+
+      // Only advance from RTO state
+      if ( $current !== 'RTO' ) return;
+
+      update_post_meta(
+          $order_id, '_upaya_email_state', 'RTO_COMPLETE' );
+      babypasa_send_e20( $order_id );
+  }
+
+====================================================================
+SEND FUNCTION
+====================================================================
+
+  function babypasa_send_e20( $order_id ) {
+      if ( get_post_meta( $order_id, '_e20_sent', true ) ) return;
+
+      $order = wc_get_order( $order_id );
+      if ( ! $order ) return;
+
+      $first_name    = $order->get_billing_first_name();
+      $order_number  = $order->get_order_number();
+      $was_paid      = $order->is_paid();
+      $order_total   = wc_price( $order->get_total() );
+      $payment_slug  = $order->get_payment_method();
+
+      // Return items — read from E18 meta if available
+      $return_items_raw = get_post_meta(
+          $order_id, '_return_items', true );
+      $return_items = $return_items_raw
+          ? json_decode( $return_items_raw, true ) : [];
+
+      // Fallback: all order items
+      if ( empty( $return_items ) ) {
+          foreach ( $order->get_items() as $item ) {
+              $return_items[] = [
+                  'name' => $item->get_name(),
+                  'qty'  => $item->get_quantity(),
+              ];
+          }
+      }
+
+      // Refund info — only if paid online
+      $refund_info = null;
+      if ( $was_paid ) {
+          $refund_info = [
+              'amount'   => $order_total,
+              'method'   => babypasa_get_refund_label( $payment_slug ),
+              'note'     => babypasa_get_refund_note( $payment_slug ),
+              'timeline' => '3–5 business days',
+          ];
+      }
+
+      babypasa_send_email(
+          $order->get_billing_email(),
+          'We\'ve received your returned parcel — Order #'
+              . $order_number,
+          'e20-rto-complete',
+          compact(
+              'first_name', 'order_number',
+              'return_items', 'refund_info'
+          )
+      );
+
+      update_post_meta( $order_id, '_e20_sent', '1' );
+  }
+
+====================================================================
+CONDITIONAL RENDERING — TWO VERSIONS
+====================================================================
+
+VERSION A — Paid online ( $order->is_paid() === true )
+  - Refund details block: amount, Bank Transfer, 3–5 days
+  - Note: "You'll receive a confirmation email once processed"
+  - PHP: if ( $refund_info ) { render Version A }
+
+VERSION B — COD / unpaid ( $order->is_paid() === false )
+  - Simple "Return complete" confirmation block
+  - No refund mention anywhere
+  - PHP: else { render Version B }
+
+In template:
+  <?php if ( $refund_info ) : ?>
+    <!-- Version A: refund details -->
+  <?php else : ?>
+    <!-- Version B: return complete, no refund -->
+  <?php endif; ?>
+
+====================================================================
+REUSE REFUND HELPERS FROM E15
+====================================================================
+babypasa_get_refund_label() and babypasa_get_refund_note() already
+defined for E15 and reused in E17, E20. No duplication needed.
+
+  $refund_info['method'] = babypasa_get_refund_label( $payment_slug );
+  $refund_info['note']   = babypasa_get_refund_note( $payment_slug );
+
+Currently: ConnectIPS → "Bank Transfer"
+
+====================================================================
+E20 vs E17 — WHAT'S DIFFERENT
+====================================================================
+E17 (RTO Initiated): Parcel is on its way back.
+  - Customer given two options: re-order or request refund
+  - Refund not yet confirmed — pending parcel receipt
+
+E20 (RTO Complete): Parcel physically at warehouse.
+  - No action needed from customer
+  - Refund IS being processed (for paid orders)
+  - Sets up E21 (actual refund confirmation)
+
+E20 is shorter than E17 — no options card, just confirmation.
+
+====================================================================
+IMPORTANT — REFUND NOT ISSUED YET
+====================================================================
+E20 tells the customer their refund is BEING PROCESSED.
+The actual refund is issued by admin in WooCommerce:
+  1. Admin receives E20 notification (optional internal alert)
+  2. Admin inspects returned parcel condition
+  3. Admin issues refund via WooCommerce order panel
+  4. E21 fires — refund confirmed to customer
+
+Add optional internal alert in babypasa_send_e20():
+
+  wp_mail(
+      'support@babypasa.com',
+      '[ACTION NEEDED] Returned parcel received — Order #'
+          . $order_number,
+      'Parcel for order #' . $order_number . ' received.
+Customer: ' . $order->get_formatted_billing_full_name() . '
+Action: Inspect parcel and issue refund if condition acceptable.
+Admin: ' . admin_url( 'post.php?post=' . $order_id . '&action=edit' )
+  );
+
+====================================================================
+SUBJECT LINE
+====================================================================
+  We've received your returned parcel — Order #{{order_number}}
+
+====================================================================
+PLACEHOLDERS USED
+====================================================================
+  {{first_name}}      $order->get_billing_first_name()
+  {{order_number}}    $order->get_order_number()
+  {{product_name}}    Loop: $return_items[]['name']
+  {{product_qty}}     Loop: $return_items[]['qty']
+  {{order_total}}     wc_price( $order->get_total() )
+  {{refund_method}}   babypasa_get_refund_label( $payment_slug )
+  {{refund_note}}     babypasa_get_refund_note( $payment_slug )
+
+  Conditional: $refund_info !== null → Version A / else → Version B
+
+====================================================================
+NEXT EMAIL IN SEQUENCE
+====================================================================
+E21 — Refund Processed — fires when admin issues the actual
+      refund via WooCommerce order panel
+      Hook: woocommerce_order_refunded
+
+====================================================================
+END OF NOTE
+====================================================================

@@ -1,0 +1,51 @@
+/* BabyPasa Google Login — "Continue with Google" button.
+   Mirrors the look used in the My Account auth card (.bp-auth-social). */
+
+.bp-google-login-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 11px 16px;
+	border: 1px solid #dadce0;
+	border-radius: 8px;
+	background: #ffffff;
+	color: #3c4043;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1;
+	text-decoration: none;
+	transition: background-color .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+.bp-google-login-btn:hover,
+.bp-google-login-btn:focus {
+	background: #f7f8f8;
+	border-color: #c6c9cd;
+	box-shadow: 0 1px 3px rgba(60, 64, 67, .15);
+	color: #3c4043;
+}
+
+.bp-google-login-btn:active {
+	background: #f1f3f4;
+}
+
+.bp-google-login-btn__icon {
+	display: inline-flex;
+	align-items: center;
+}
+
+.bp-google-login-btn__label {
+	display: inline-block;
+}
+
+.bp-google-login-notice {
+	margin: 0 0 12px;
+	padding: 8px 10px;
+	border: 1px dashed #d63638;
+	border-radius: 6px;
+	color: #d63638;
+	font-size: 13px;
+}

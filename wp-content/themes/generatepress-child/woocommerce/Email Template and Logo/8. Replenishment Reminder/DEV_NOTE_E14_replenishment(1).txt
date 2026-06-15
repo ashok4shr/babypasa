@@ -1,0 +1,298 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E14 Replenishment Reminder — Full Logic & Code
+====================================================================
+
+OVERVIEW
+--------
+E14 only fires when an order contains at least one product marked
+as replenishable. Toys, books, and non-consumables are silently
+excluded — E14 is never scheduled for those orders.
+
+====================================================================
+STEP 1 — REGISTER PRODUCT META FIELDS
+====================================================================
+Add these two custom fields to each product in WooCommerce admin.
+Place this code in functions.php or a custom plugin:
+
+  // Show fields on product edit page
+  add_action( 'woocommerce_product_options_general_product_data',
+  function() {
+      echo '<div class="options_group">';
+
+      woocommerce_wp_checkbox([
+          'id'          => '_is_replenishable',
+          'label'       => 'Replenishable product',
+          'description' => 'Tick for consumables like diapers, wipes,
+                            formula milk. Leave unticked for toys, books.',
+      ]);
+
+      woocommerce_wp_text_input([
+          'id'          => '_replenishment_days',
+          'label'       => 'Replenishment interval (days)',
+          'type'        => 'number',
+          'description' => 'How many days after delivery to send the
+                            reminder. e.g. 25 for diapers.',
+          'desc_tip'    => true,
+      ]);
+
+      echo '</div>';
+  });
+
+  // Save fields
+  add_action( 'woocommerce_process_product_meta', function( $post_id ) {
+      update_post_meta( $post_id, '_is_replenishable',
+          isset( $_POST['_is_replenishable'] ) ? 'yes' : 'no' );
+
+      if ( isset( $_POST['_replenishment_days'] ) ) {
+          update_post_meta( $post_id, '_replenishment_days',
+              absint( $_POST['_replenishment_days'] ) );
+      }
+  });
+
+DEFAULT INTERVALS (set these on each product in admin)
+  Diapers          25 days
+  Baby Wipes       20 days
+  Formula Milk     28 days
+  Coconut Oil      35 days
+  General essentials 30 days
+
+====================================================================
+STEP 2 — HELPER FUNCTION: GET REPLENISHABLE ITEMS
+====================================================================
+
+  function babypasa_get_replenishable_items( $order ) {
+      $items    = [];
+      $min_days = null;
+
+      foreach ( $order->get_items() as $item ) {
+          $pid  = $item->get_product_id();
+          $flag = get_post_meta( $pid, '_is_replenishable', true );
+
+          if ( $flag === 'yes' ) {
+              $days = (int) get_post_meta( $pid, '_replenishment_days', true );
+              if ( ! $days ) $days = 30; // fallback default
+
+              $items[] = [
+                  'item'    => $item,
+                  'product' => $item->get_product(),
+                  'name'    => $item->get_name(),
+                  'qty'     => $item->get_quantity(),
+                  'pid'     => $pid,
+                  'days'    => $days,
+              ];
+
+              if ( $min_days === null || $days < $min_days ) {
+                  $min_days = $days;
+              }
+          }
+      }
+
+      return [ 'items' => $items, 'min_days' => $min_days ];
+  }
+
+====================================================================
+STEP 3 — SCHEDULE E14 FROM E12 HANDLER
+====================================================================
+This runs inside the E12 (Delivered) webhook handler, immediately
+after the delivered email fires:
+
+  $replenishment = babypasa_get_replenishable_items( $order );
+
+  if ( ! empty( $replenishment['items'] ) ) {
+      $delay = $replenishment['min_days'] * DAY_IN_SECONDS;
+
+      wp_schedule_single_event(
+          time() + $delay,
+          'babypasa_send_replenishment_email',
+          [ $order_id ]
+      );
+  }
+  // If no replenishable items → nothing scheduled → E14 never fires.
+
+====================================================================
+STEP 4 — EMAIL SEND HANDLER
+====================================================================
+
+  add_action( 'babypasa_send_replenishment_email',
+  function( $order_id ) {
+      // Do not resend check
+      if ( get_post_meta( $order_id, '_e14_sent', true ) ) return;
+
+      $order = wc_get_order( $order_id );
+      if ( ! $order ) return;
+
+      // Verify order is still in DELIVERED state
+      $state = get_post_meta( $order_id, '_upaya_email_state', true );
+      if ( $state !== 'DELIVERED' ) return;
+
+      $replenishment = babypasa_get_replenishable_items( $order );
+      if ( empty( $replenishment['items'] ) ) return;
+
+      // Build email data
+      $first_name = $order->get_billing_first_name();
+      $days_since = (int)(
+          ( time() - $order->get_date_created()->getTimestamp() )
+          / DAY_IN_SECONDS
+      );
+
+      // Build per-product rows for the email template
+      $product_rows = '';
+      foreach ( $replenishment['items'] as $r ) {
+          $reorder_url = add_query_arg([
+              'add-to-cart' => $r['pid'],
+              'quantity'    => $r['qty'],
+          ], wc_get_cart_url() );
+
+          $product_rows .= babypasa_replenishment_product_row(
+              $r['name'],
+              $days_since,
+              $reorder_url
+          );
+      }
+
+      // "Reorder Everything" URL — custom endpoint (see Step 5)
+      $reorder_all_url = home_url( '/reorder/' . $order_id );
+
+      // Render and send email
+      $template_vars = compact(
+          'first_name', 'product_rows', 'reorder_all_url'
+      );
+      babypasa_send_email( $order->get_billing_email(),
+          'E14 Replenishment Reminder',
+          'e14-replenishment',
+          $template_vars
+      );
+
+      update_post_meta( $order_id, '_e14_sent', '1' );
+  });
+
+====================================================================
+STEP 5 — REORDER EVERYTHING ENDPOINT
+====================================================================
+Registers a custom URL /reorder/ORDER_ID that adds all replenishable
+items to cart and redirects the customer to checkout:
+
+  add_action( 'init', function() {
+      add_rewrite_rule(
+          'reorder/([0-9]+)/?$',
+          'index.php?babypasa_reorder_id=$matches[1]',
+          'top'
+      );
+      add_rewrite_tag( '%babypasa_reorder_id%', '([0-9]+)' );
+  });
+
+  add_action( 'template_redirect', function() {
+      $order_id = get_query_var( 'babypasa_reorder_id' );
+      if ( ! $order_id ) return;
+
+      $order = wc_get_order( $order_id );
+      if ( ! $order ) wp_redirect( home_url() ) and exit;
+
+      // Verify the customer owns this order (security check)
+      if ( $order->get_customer_id() !== get_current_user_id()
+           && get_current_user_id() !== 0 ) {
+          wp_redirect( wc_get_cart_url() ) and exit;
+      }
+
+      // Clear current cart and add replenishable items
+      WC()->cart->empty_cart();
+
+      $replenishment = babypasa_get_replenishable_items( $order );
+      foreach ( $replenishment['items'] as $r ) {
+          WC()->cart->add_to_cart( $r['pid'], $r['qty'] );
+      }
+
+      // After adding flush rewrite rules once on plugin activation:
+      // flush_rewrite_rules();
+
+      wp_redirect( wc_get_checkout_url() );
+      exit;
+  });
+
+  IMPORTANT: Run flush_rewrite_rules() once after registering the
+  rewrite rule — activate/deactivate the plugin or visit
+  Settings → Permalinks and save.
+
+====================================================================
+STEP 6 — PRODUCT ROW HELPER
+====================================================================
+Generates one product row in the email table:
+
+  function babypasa_replenishment_product_row(
+      $name, $days_since, $reorder_url
+  ) {
+      // Returns the <tr> HTML block for one product row.
+      // Plug into the {{product_rows}} slot in E14 template.
+      ob_start(); ?>
+      <tr>
+        <td style="padding:14px 16px;vertical-align:middle;
+                   border-bottom:1px solid #f3f4f6;">
+          <p style="margin:0 0 3px;font-size:13px;font-weight:700;
+                    color:#1f2937;font-family:Arial,Helvetica,sans-serif;">
+            <?php echo esc_html( $name ); ?>
+          </p>
+          <p style="margin:0;font-size:12px;color:#6b7280;
+                    font-family:Arial,Helvetica,sans-serif;">
+            Last ordered <?php echo esc_html( $days_since ); ?> days ago
+          </p>
+        </td>
+        <td style="padding:14px 16px;text-align:right;
+                   vertical-align:middle;white-space:nowrap;
+                   border-bottom:1px solid #f3f4f6;">
+          <a href="<?php echo esc_url( $reorder_url ); ?>"
+             target="_blank"
+             style="display:inline-block;background:#ec4899;
+                    color:#ffffff !important;font-size:12px;
+                    font-weight:700;padding:7px 16px;border-radius:5px;
+                    text-decoration:none;
+                    font-family:Arial,Helvetica,sans-serif;">
+            Reorder
+          </a>
+        </td>
+      </tr>
+      <?php return ob_get_clean();
+  }
+
+====================================================================
+SUBJECT LINE
+====================================================================
+  Time to stock up, {{first_name}}? 🍼
+
+====================================================================
+PLACEHOLDERS USED IN TEMPLATE
+====================================================================
+  {{first_name}}        $order->get_billing_first_name()
+  {{product_rows}}      Generated by babypasa_replenishment_product_row()
+  {{reorder_all_url}}   home_url( '/reorder/' . $order_id )
+
+====================================================================
+EDGE CASES
+====================================================================
+1. Order is cancelled after E14 is scheduled:
+   Check order status in the handler — if cancelled, skip send.
+   $order->get_status() === 'cancelled' → return;
+
+2. Customer already reordered before E14 fires:
+   Check if a newer order exists for this customer within the
+   replenishment window. Optional but nice-to-have:
+   $recent_orders = wc_get_orders([
+       'customer' => $order->get_customer_id(),
+       'date_after' => date('Y-m-d', strtotime('-7 days')),
+       'limit' => 1,
+   ]);
+   if ( ! empty( $recent_orders ) ) return; // skip, already reordered
+
+3. Product out of stock at time of send:
+   Check $product->is_in_stock() before adding to product rows.
+   If out of stock, show product name without Reorder button and
+   add a "Back soon" label instead.
+
+====================================================================
+NEXT EMAIL IN SEQUENCE
+====================================================================
+None — E14 does not trigger any further emails.
+
+====================================================================
+END OF NOTE
+====================================================================

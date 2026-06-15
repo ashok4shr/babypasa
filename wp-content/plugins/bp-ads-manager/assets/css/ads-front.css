@@ -1,0 +1,104 @@
+/* BP Ads Manager — Front-end popup & banner styles */
+
+/* ── Popup overlay ───────────────────────────────────────────────────────── */
+.bp-popup-overlay {
+	display: none; /* JS sets display:flex when showing */
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, .6);
+	z-index: 999999; /* above all theme elements including PWA prompts (99998/99999) */
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	transition: opacity .3s ease;
+}
+.bp-popup-overlay.bp-popup-visible {
+	opacity: 1;
+}
+
+/* ── Desktop modal ───────────────────────────────────────────────────────── */
+.bp-popup-modal {
+	position: relative;
+	background: #fff;
+	border-radius: 6px;
+	padding: 0;
+	max-width: 560px;
+	width: calc(100% - 40px);
+	max-height: 90vh;
+	overflow-y: auto;
+	box-shadow: 0 8px 40px rgba(0, 0, 0, .25);
+	transform: translateY(-20px);
+	transition: transform .3s ease;
+}
+.bp-popup-overlay.bp-popup-visible .bp-popup-modal {
+	transform: translateY(0);
+}
+
+/* ── Ad container — wraps the actual image or HTML body ──────────────────── */
+.bp-ad-container {
+	position: relative;
+	/* Preserve any existing padding/margin set by parent; add none here. */
+}
+
+/* ── Close button — top-right corner of the full-screen overlay ──────────── */
+.bp-ad-close {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+	z-index: 10;
+	background: rgba(0, 0, 0, .5);
+	border: none;
+	font-size: 22px;
+	line-height: 1;
+	color: #fff;
+	cursor: pointer;
+	padding: 6px 10px;
+	border-radius: 4px;
+	transition: background .15s;
+}
+.bp-ad-close:hover {
+	background: rgba(0, 0, 0, .75);
+}
+
+/* ── Popup content images ────────────────────────────────────────────────── */
+.bp-ad-container img { max-width: 100%; height: auto; display: block; }
+
+/* ── Mobile: centred card (≤767px) ───────────────────────────────────────── */
+@media (max-width: 767px) {
+	.bp-popup-modal {
+		max-width: calc(100% - 32px);
+		border-radius: 6px;
+	}
+}
+
+/* ── Banner wrapper ──────────────────────────────────────────────────────── */
+.bp-banner-wrapper {
+	width: 100%;
+	margin: 16px 0;
+}
+.bp-banner-label {
+	display: block;
+	font-size: 11px;
+	color: #888;
+	text-transform: uppercase;
+	letter-spacing: .5px;
+	margin-bottom: 6px;
+}
+.bp-banner-content { width: 100%; }
+.bp-banner-content img { max-width: 100%; height: auto; display: block; }
+
+/* ── Banner link wrapper ─────────────────────────────────────────────────── */
+.bp-banner-link {
+	display: block;
+	text-decoration: none;
+	color: inherit;
+}
+.bp-banner-link:hover { opacity: .9; }
+
+/* ── Device targeting utility classes ───────────────────────────────────── */
+@media (max-width: 767px) {
+	.bp-hide-mobile { display: none !important; }
+}
+@media (min-width: 768px) {
+	.bp-hide-desktop { display: none !important; }
+}

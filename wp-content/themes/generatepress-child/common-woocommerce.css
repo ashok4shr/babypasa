@@ -1,0 +1,375 @@
+/* SHARED WOOCOMMERCE DESIGN COMPONENTS */
+
+/* Product Section & Slider Layout */
+.bp-products-section {
+    margin-bottom: 60px;
+}
+
+.bp-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #FF2A61;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+}
+
+.bp-section-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+    text-transform: uppercase;
+    color: #222;
+}
+
+.bp-slider-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.bp-control-btn {
+    background: #fff;
+    border: 1px solid #ddd;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    color: #666;
+    padding: 0;
+}
+
+.bp-control-btn:hover {
+    border-color: #FF2A61;
+    color: #FF2A61;
+}
+
+.bp-slider-container {
+    overflow: hidden;
+    position: relative;
+}
+
+.bp-slider-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -ms-overflow-style: none; /* IE/Edge */
+    scrollbar-width: none; /* Firefox */
+}
+.bp-slider-track::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+.bp-slide {
+    flex: 0 0 25%;
+    padding-right: 10px;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Base Product Card Style */
+.bp-product-card {
+    position: relative;
+    background: #fff;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.bp-product-image-wrapper {
+    position: relative;
+    background: #f7f7f7;
+    margin-bottom: 15px;
+    overflow: hidden;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+}
+
+/* Link fills the full wrapper area as a block — no inline anchor weirdness */
+.bp-product-img-link {
+    display: block;
+    height: 100%;
+}
+
+.bp-product-image-wrapper img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.bp-product-card:hover .bp-product-image-wrapper img {
+    transform: scale(1.05);
+}
+
+.bp-product-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.05);
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.bp-product-card:hover .bp-product-overlay {
+    opacity: 1;
+}
+
+.bp-badge-new {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #008000;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    z-index: 2;
+}
+
+.bp-product-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.bp-grid-actions {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    z-index: 2;
+}
+
+.bp-product-card:hover .bp-grid-actions {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.bp-action-btn {
+    background-color: #FF2A61;
+    color: transparent;
+    border: none;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background-color 0.2s;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.bp-action-btn:hover {
+    background-color: #d81b4d;
+}
+
+.bp-wishlist-btn {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3E%3Cpath d='M8 2.748l-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15'/%3E%3C/svg%3E");
+}
+
+.bp-compare-btn {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z'/%3E%3C/svg%3E");
+    background-size: 18px;
+}
+
+.bp-product-details {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    padding: 10px 0;
+}
+
+.bp-product-title {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    margin: 0 0 10px !important;
+    line-height: 1.4 !important;
+    color: #333 !important;
+    /* Clamp to 2 lines so all cards share the same title height */
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: calc(1.4em * 2); /* reserve 2-line height even for short titles */
+}
+
+.bp-product-title a {
+    color: inherit !important;
+    text-decoration: none !important;
+}
+
+.bp-product-title a:hover {
+    color: #FF2A61 !important;
+}
+
+.bp-product-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 15px;
+}
+
+.bp-product-price del {
+    color: #999;
+    font-size: 13px;
+    font-weight: 400;
+    margin-right: 5px;
+}
+
+.bp-product-price ins {
+    text-decoration: none;
+    color: #222;
+}
+
+.bp-product-card .add_to_cart_button,
+.bp-product-card .button {
+    background-color: #FF2A61 !important;
+    color: #fff !important;
+    border: none !important;
+    padding: 10px 20px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    border-radius: 2px !important;
+    transition: background 0.2s !important;
+    text-decoration: none !important;
+    line-height: 1 !important;
+    display: inline-block !important;
+    margin-top: auto !important; /* pin button to bottom of flex column */
+}
+
+.bp-product-card .add_to_cart_button:hover,
+.bp-product-card .button:hover {
+    background-color: #d81b4d !important;
+}
+
+/* ── Add to cart — loading state ────────────────────────────────────────────
+ * Buttons here use bare text nodes (no <span> wrapper), so visibility:hidden
+ * on spans would be a no-op. color:transparent hides text universally.
+ * The spinner ::after uses an explicit rgba border instead of currentColor
+ * because color:transparent would make currentColor transparent too.
+ * Button height ≈ 14px line-height + 20px vertical padding = ~34px total;
+ * a 16px spinner leaves ~9px top/bottom — proportionate.
+ * ───────────────────────────────────────────────────────────────────────── */
+.add_to_cart_button.bp-loading,
+.single_add_to_cart_button.bp-loading,
+[data-bp-cart-btn="true"].bp-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.75;
+    cursor: not-allowed;
+    color: transparent !important;
+}
+
+.add_to_cart_button.bp-loading span,
+.single_add_to_cart_button.bp-loading span,
+[data-bp-cart-btn="true"].bp-loading span {
+    visibility: hidden;
+}
+
+.add_to_cart_button.bp-loading::after,
+.single_add_to_cart_button.bp-loading::after,
+[data-bp-cart-btn="true"].bp-loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: bp-spin 0.65s linear infinite;
+}
+
+@keyframes bp-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive Sliders */
+@media (max-width: 1200px) {
+    .bp-slide {
+        flex: 0 0 30.33%;
+    }
+}
+
+@media (max-width: 900px) {
+    .bp-slide {
+        flex: 0 0 46%;
+    }
+}
+
+/* Mobile (≤ 768px) — Tasks 1, 2 & 3 */
+@media (max-width: 768px) {
+
+    /* Task 1: Prevent horizontal overflow caused by slider */
+    .bp-slider-container {
+        overflow: hidden;
+        width: 100%;
+    }
+
+    /* Task 1: Hide arrow controls — touch/swipe handles navigation */
+    .bp-products-section .bp-slider-controls {
+        display: none;
+    }
+
+    /* Task 2: Exactly 2 and half product cards visible at a time */
+    .bp-slide {
+        flex: 0 0 46%;
+    }
+
+    /* Image wrapper fills slide width — aspect-ratio: 1/1 (base rule) keeps it square */
+
+    /* Task 2: Compact card typography */
+    .bp-product-card .bp-product-title {
+        font-size: 12px !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .bp-product-card .bp-product-price {
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+
+    .bp-product-card .add_to_cart_button,
+    .bp-product-card .button {
+        font-size: 12px !important;
+        padding: 8px 10px !important;
+    }
+
+    /* Task 3: Wishlist button always visible — override hover-only opacity/transform */
+    .bp-product-card .bp-grid-actions {
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+    }
+
+    /* Task 3: Hide compare button on mobile */
+    .bp-product-card .bp-compare-btn {
+        display: none !important;
+    }
+}
+
+/* My Account — Orders table action buttons */
+.woocommerce-MyAccount-orders td.woocommerce-orders-table__cell a.button + a.button {
+    margin-left: 6px;
+}

@@ -1,0 +1,151 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E16 Failed Delivery Attempt
+====================================================================
+
+TRIGGER
+-------
+Webhook status : "Follow Up for Return"
+State          : Remains OUT_FOR_DELIVERY (do not advance state)
+Meta update    : None to state — log attempt count only
+
+  // In webhook handler:
+  if ( str_contains( $status, 'Follow Up' ) ) {
+      // Increment attempt counter
+      $attempts = (int) get_post_meta(
+          $order_id, '_delivery_attempts', true );
+      update_post_meta(
+          $order_id, '_delivery_attempts', $attempts + 1 );
+
+      // Send E16 — but only if not already sent recently
+      // (Upaya may fire this webhook multiple times)
+      $last_e16 = (int) get_post_meta(
+          $order_id, '_e16_last_sent', true );
+      $hours_since = ( time() - $last_e16 ) / HOUR_IN_SECONDS;
+
+      if ( $hours_since >= 12 || ! $last_e16 ) {
+          babypasa_send_e16( $order_id );
+          update_post_meta( $order_id, '_e16_last_sent', time() );
+      }
+      return; // Do not advance state
+  }
+
+WHY NOT ADVANCE STATE
+----------------------
+OUT_FOR_DELIVERY → failed attempt is NOT a state change.
+The parcel is still with the delivery agent. The state only
+advances to DELIVERED or RTO. Keeping the state unchanged means
+if Upaya retries and delivers successfully, E12 fires normally.
+
+COOLDOWN LOGIC (12 HOURS)
+--------------------------
+Upaya's system can fire "Follow Up for Return" multiple times
+for the same failed attempt (e.g., once when agent marks it and
+again when supervisor reviews). The 12-hour cooldown between E16
+sends prevents duplicate emails to the customer.
+
+If a genuine second failed attempt happens within 12 hours
+(rare), the customer still hears nothing until the next day.
+This is acceptable — better than spamming.
+
+SEND FUNCTION
+-------------
+
+  function babypasa_send_e16( $order_id ) {
+      $order = wc_get_order( $order_id );
+      if ( ! $order ) return;
+
+      $first_name     = $order->get_billing_first_name();
+      $order_number   = $order->get_order_number();
+      $tracking_code  = get_post_meta(
+          $order_id, '_upaya_tracking_code', true );
+      $attempts       = (int) get_post_meta(
+          $order_id, '_delivery_attempts', true );
+
+      // Shipping address
+      $address = [
+          'line1'    => $order->get_shipping_address_1(),
+          'line2'    => $order->get_shipping_address_2(),
+          'city'     => $order->get_shipping_city(),
+          'district' => $order->get_shipping_state(),
+      ];
+
+      // Items
+      $items = [];
+      foreach ( $order->get_items() as $item ) {
+          $items[] = [
+              'name' => $item->get_name(),
+              'qty'  => $item->get_quantity(),
+          ];
+      }
+
+      $track_url   = home_url( '/my-account/track-orders/' );
+      $support_url = 'mailto:support@babypasa.com';
+
+      babypasa_send_email(
+          $order->get_billing_email(),
+          'We tried to deliver your order #' . $order_number
+              . ', ' . $first_name . '!',
+          'e16-failed-delivery',
+          compact(
+              'first_name', 'order_number', 'tracking_code',
+              'address', 'items', 'track_url', 'support_url',
+              'attempts'
+          )
+      );
+  }
+
+====================================================================
+TONE RULES — ENFORCED IN COPY
+====================================================================
+  ✅ Lead with positive: "Another attempt is on its way!"
+  ✅ Upaya will call/SMS — reassurance they won't miss it again
+  ✅ Show delivery address — customer can verify/correct it
+  ✅ "What's waiting for you" — anticipation, not blame
+
+  ❌ Never mention: return, RTO, sending back, failed, unable
+  ❌ Never imply: it's the customer's fault
+  ❌ Never threaten: consequences of another failed attempt
+
+====================================================================
+ADDRESS CORRECTION FLOW
+====================================================================
+The "Wrong address? Contact us" link opens a support email.
+If the customer responds with a corrected address:
+
+  1. Admin updates shipping address in WooCommerce order panel
+  2. Admin contacts Upaya directly with updated address
+  3. No automated flow — this is a manual support task
+
+Consider adding a dedicated address-update form page at
+/my-account/update-address/ linked from the email for a
+smoother experience as order volume grows.
+
+====================================================================
+SUBJECT LINE
+====================================================================
+  We tried to deliver your order #{{order_number}}, {{first_name}}!
+
+====================================================================
+PLACEHOLDERS USED
+====================================================================
+  {{first_name}}         $order->get_billing_first_name()
+  {{order_number}}       $order->get_order_number()
+  {{tracking_code}}      get_post_meta( $order_id, '_upaya_tracking_code' )
+  {{shipping_address}}   $order->get_shipping_address_1()
+  {{shipping_city}}      $order->get_shipping_city()
+  {{shipping_district}}  $order->get_shipping_state()
+  {{product_name}}       Loop: $item->get_name()
+  {{product_qty}}        Loop: $item->get_quantity()
+  {{track_url}}          home_url( '/my-account/track-orders/' )
+
+====================================================================
+NEXT EMAIL IN SEQUENCE
+====================================================================
+If delivery succeeds on retry   → E12 Delivered (webhook: Delivered)
+If all attempts exhausted       → E17 RTO Initiated (webhook: Return Process)
+E16 does not trigger either — both fire from webhook state changes.
+
+====================================================================
+END OF NOTE
+====================================================================

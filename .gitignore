@@ -1,0 +1,71 @@
+# =============================================================================
+# babypasa — whitelist .gitignore
+# Strategy: ignore EVERYTHING by default, then explicitly re-include only the
+# custom plugins, the custom MU-plugin, and the GeneratePress child theme.
+# Repo root mirrors the live WordPress paths so prod `git pull` updates in place.
+# =============================================================================
+
+# --- Ignore everything at the root by default ---
+/*
+
+# --- Repo infrastructure (allowed at root) ---
+!.gitignore
+!.gitattributes
+!CLAUDE.md
+
+# --- Descend into wp-content only ---
+!/wp-content/
+/wp-content/*
+
+# --- MU-plugins: descend, whitelist custom SEO MU-plugin only ---
+!/wp-content/mu-plugins/
+/wp-content/mu-plugins/*
+!/wp-content/mu-plugins/babypasa-seo.php
+
+# --- Plugins: descend, then whitelist custom plugins only ---
+!/wp-content/plugins/
+/wp-content/plugins/*
+!/wp-content/plugins/babypasa-address-book/
+!/wp-content/plugins/babypasa-admin-order-enhancements/
+!/wp-content/plugins/babypasa-connectips/
+!/wp-content/plugins/babypasa-delivery-overrides/
+!/wp-content/plugins/babypasa-faq/
+!/wp-content/plugins/babypasa-google-login/
+!/wp-content/plugins/babypasa-newsletter/
+!/wp-content/plugins/babypasa-pwa/
+!/wp-content/plugins/babypasa-returns/
+!/wp-content/plugins/babypasa-wishlist-compare/
+!/wp-content/plugins/bp-ads-manager/
+!/wp-content/plugins/bp-contact-form/
+!/wp-content/plugins/price-drop-notification/
+!/wp-content/plugins/upaya-cargo-woocommerce/
+
+# --- Themes: descend, whitelist the GeneratePress child theme only ---
+!/wp-content/themes/
+/wp-content/themes/*
+!/wp-content/themes/generatepress-child/
+
+# =============================================================================
+# Re-assert exclusions even INSIDE tracked dirs (last-match-wins; defense in depth)
+# Never track secrets, dumps, build deps, archives, logs, or OS cruft.
+# =============================================================================
+**/node_modules/
+**/vendor/
+**/*.log
+**/*.zip
+**/*.tar
+**/*.tar.gz
+**/*.tgz
+**/*.gz
+**/*.sql
+**/*.sql.gz
+**/*.bak
+**/*.swp
+**/*.pem
+**/*.key
+**/*.crt
+**/*.p12
+**/.env
+**/.env.*
+**/.DS_Store
+**/Thumbs.db

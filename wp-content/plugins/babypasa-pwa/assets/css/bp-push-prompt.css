@@ -1,0 +1,118 @@
+/**
+ * BabyPasa — Push notification permission soft-prompt.
+ * Slides down from the top so it doesn't overlap the install prompt at the bottom.
+ */
+
+#bp-push-prompt {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 99999;
+    padding: calc( 12px + env( safe-area-inset-top, 0px ) ) 16px 12px;
+    transform: translateY( -110% );
+    transition: transform 0.3s cubic-bezier( 0.34, 1.2, 0.64, 1 );
+    pointer-events: none;
+}
+
+#bp-push-prompt.bp-push-prompt--visible {
+    transform: translateY( 0 );
+    pointer-events: all;
+}
+
+.bp-push-prompt__inner {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 32px rgba( 0, 0, 0, 0.14 );
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.bp-push-prompt__icon {
+    font-size: 26px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.bp-push-prompt__text {
+    flex: 1;
+    min-width: 0;
+}
+
+.bp-push-prompt__text strong {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 2px;
+}
+
+.bp-push-prompt__text span {
+    font-size: 0.8rem;
+    color: #888888;
+    line-height: 1.4;
+}
+
+.bp-push-prompt__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.bp-push-prompt__deny {
+    background: none;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 0.85rem;
+    color: #666666;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s;
+    font-family: inherit;
+}
+
+.bp-push-prompt__deny:hover,
+.bp-push-prompt__deny:focus {
+    background: #f5f5f5;
+    border-color: #ccc;
+    outline: none;
+}
+
+.bp-push-prompt__allow {
+    background: #FF2A61;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #ffffff;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+    font-family: inherit;
+    letter-spacing: 0.01em;
+}
+
+.bp-push-prompt__allow:hover,
+.bp-push-prompt__allow:focus {
+    background: #e0244f;
+    outline: none;
+}
+
+@media ( max-width: 480px ) {
+    .bp-push-prompt__inner {
+        flex-wrap: wrap;
+        padding: 14px 16px;
+    }
+    .bp-push-prompt__actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 4px;
+    }
+}

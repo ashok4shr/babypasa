@@ -1,0 +1,931 @@
+/**
+ * My Account — BabyPasa Custom Styles
+ *
+ * Scoped under .woocommerce-account to prevent bleed.
+ * Loaded only on account pages via wp_enqueue_scripts / is_account_page().
+ *
+ * @package BabyPasa\MyAccount
+ */
+
+/* ── Hide GeneratePress page title on My Account pages ─────────────────────── */
+/*
+ * GP renders h1.entry-title inside .entry-header > .inside-article.
+ * Hiding .entry-header is safe — it contains only the title on this page.
+ */
+.woocommerce-account .entry-header {
+	display: none !important;
+}
+
+/* ── CSS Custom Properties ─────────────────────────────────────────────────── */
+:root {
+	--bp-brand:        #FF2A61;
+	--bp-brand-dark:   #e0244f;
+	--bp-text:         #1a1a1a;
+	--bp-text-muted:   #6b7280;
+	--bp-bg-page:      #f7f7f8;
+	--bp-bg-card:      #ffffff;
+	--bp-border:       #e5e7eb;
+	--bp-radius-card:  14px;
+	--bp-radius-input: 8px;
+	--bp-shadow-card:  0 4px 24px rgba(0, 0, 0, 0.08);
+	--bp-transition:   0.2s ease;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   LOGGED-OUT — Auth Card
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.woocommerce-account .bp-myaccount-auth-wrapper {
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
+	padding: 40px 16px 60px;
+	background: var(--bp-bg-page);
+	min-height: 60vh;
+}
+
+.woocommerce-account .bp-myaccount-auth-wrapper .woocommerce-MyAccount-content {
+	width: 100%;
+	max-width: 440px;
+	float: none !important;
+}
+
+.woocommerce-account .bp-myaccount-auth-wrapper .woocommerce-notices-wrapper {
+	margin-bottom: 0;
+}
+
+/* ── Auth Card Container ────────────────────────────────────────────────────── */
+/*
+ * my-account.php is only loaded for logged-in users.
+ * When logged out, WooCommerce's shortcode renders form-login.php directly
+ * inside div.woocommerce — so max-width / centering must live here on the card.
+ */
+.woocommerce-account .bp-auth-card {
+	background: var(--bp-bg-card);
+	border-radius: var(--bp-radius-card);
+	box-shadow: var(--bp-shadow-card);
+	padding: 40px 36px;
+	width: 100%;
+	max-width: 480px;
+	margin: 40px auto 60px;
+	box-sizing: border-box;
+	position: relative;
+}
+
+@media ( max-width: 480px ) {
+	.woocommerce-account .bp-auth-card {
+		padding: 32px 20px;
+		border-radius: 10px;
+	}
+}
+
+/* ── Panel visibility toggle ────────────────────────────────────────────────── */
+.woocommerce-account .bp-auth-panel {
+	animation: bp-fade-in 0.25s ease forwards;
+}
+
+.woocommerce-account .bp-auth-panel--hidden {
+	display: none !important;
+}
+
+/* ── Heading ────────────────────────────────────────────────────────────────── */
+.woocommerce-account .bp-auth-heading {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: var(--bp-text);
+	margin: 0 0 24px;
+	line-height: 1.25;
+	text-align: center;
+}
+
+/* ── Social (Google) Button wrapper ─────────────────────────────────────────── */
+.woocommerce-account .bp-auth-social {
+	margin-bottom: 20px;
+}
+
+.woocommerce-account .bp-auth-social .nsl-container {
+	display: block !important;
+	text-align: center;
+}
+
+.woocommerce-account .bp-auth-social .nsl-container-block .nsl-button {
+	display: flex !important;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	width: 100% !important;
+	height: 44px !important;
+	background: #ffffff !important;
+	color: #3c4043 !important;
+	border: 1px solid #dadce0 !important;
+	border-radius: var(--bp-radius-input) !important;
+	font-size: 0.9375rem !important;
+	font-weight: 500 !important;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+	cursor: pointer;
+	transition: background var(--bp-transition), box-shadow var(--bp-transition) !important;
+	text-decoration: none !important;
+	box-sizing: border-box;
+}
+
+.woocommerce-account .bp-auth-social .nsl-container-block .nsl-button:hover {
+	background: #f8f9fa !important;
+	box-shadow: 0 2px 6px rgba(0,0,0,0.14) !important;
+}
+
+.woocommerce-account .bp-auth-social .nsl-container .nsl-button-svg-container {
+	flex-shrink: 0;
+	padding: 0 !important; /* Plugin sets padding:8px — with border-box this crushes SVG to 12px */
+	width: 28px !important;
+	height: 28px !important;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.woocommerce-account .bp-auth-social .nsl-container svg {
+	width: 28px !important;
+	height: 28px !important;
+	flex-shrink: 0;
+}
+
+.woocommerce-account .bp-auth-social .nsl-container-block .nsl-button-label-container {
+	flex: 1;
+	text-align: center;
+}
+
+/* ── Divider ────────────────────────────────────────────────────────────────── */
+.woocommerce-account .bp-auth-divider {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 20px 0;
+	color: var(--bp-text-muted);
+	font-size: 0.8125rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.woocommerce-account .bp-auth-divider::before,
+.woocommerce-account .bp-auth-divider::after {
+	content: '';
+	flex: 1;
+	height: 1px;
+	background: var(--bp-border);
+}
+
+/* ── Form Fields ────────────────────────────────────────────────────────────── */
+.woocommerce-account .bp-form-field {
+	margin-bottom: 16px;
+}
+
+.woocommerce-account .bp-form-field label {
+	display: block;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--bp-text);
+	margin-bottom: 6px;
+}
+
+.woocommerce-account .bp-form-field label .required {
+	color: var(--bp-brand);
+	margin-left: 2px;
+}
+
+.woocommerce-account .bp-auth-card .woocommerce-Input--text,
+.woocommerce-account .bp-auth-card input.input-text {
+	width: 100%;
+	height: 44px;
+	padding: 0 14px;
+	border: 1.5px solid var(--bp-border);
+	border-radius: var(--bp-radius-input);
+	font-size: 0.9375rem;
+	color: var(--bp-text);
+	background: #fff;
+	box-sizing: border-box;
+	transition: border-color var(--bp-transition), box-shadow var(--bp-transition);
+	outline: none;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.woocommerce-account .bp-auth-card .woocommerce-Input--text:focus,
+.woocommerce-account .bp-auth-card input.input-text:focus {
+	border-color: var(--bp-brand);
+	box-shadow: 0 0 0 3px rgba(255, 42, 97, 0.12);
+}
+
+/* ── Remember me / Forgot row ───────────────────────────────────────────────── */
+.woocommerce-account .bp-form-row-inline {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 20px;
+}
+
+/* ── Custom checkbox ────────────────────────────────────────────────────────── */
+.woocommerce-account .bp-checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	font-size: 0.875rem;
+	color: var(--bp-text);
+	user-select: none;
+}
+
+.woocommerce-account .bp-checkbox-input {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.woocommerce-account .bp-checkbox-box {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	border: 2px solid var(--bp-border);
+	border-radius: 4px;
+	background: #fff;
+	flex-shrink: 0;
+	transition: border-color var(--bp-transition), background var(--bp-transition);
+}
+
+.woocommerce-account .bp-checkbox-input:checked + .bp-checkbox-box {
+	background: var(--bp-brand);
+	border-color: var(--bp-brand);
+}
+
+.woocommerce-account .bp-checkbox-input:checked + .bp-checkbox-box::after {
+	content: '';
+	display: block;
+	width: 5px;
+	height: 9px;
+	border: 2px solid #fff;
+	border-top: none;
+	border-left: none;
+	transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.woocommerce-account .bp-checkbox-input:focus-visible + .bp-checkbox-box {
+	outline: 2px solid var(--bp-brand);
+	outline-offset: 2px;
+}
+
+/* ── Forgot password link ───────────────────────────────────────────────────── */
+.woocommerce-account .bp-forgot-link {
+	font-size: 0.8125rem;
+	color: var(--bp-brand);
+	text-decoration: none;
+	white-space: nowrap;
+	transition: color var(--bp-transition);
+}
+
+.woocommerce-account .bp-forgot-link:hover {
+	color: var(--bp-brand-dark);
+	text-decoration: underline;
+}
+
+/* ── Primary CTA Button ─────────────────────────────────────────────────────── */
+.woocommerce-account .bp-btn {
+	display: block;
+	width: 100%;
+	height: 46px;
+	border: none;
+	border-radius: var(--bp-radius-input);
+	font-size: 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background var(--bp-transition), transform var(--bp-transition);
+	text-align: center;
+	letter-spacing: 0.01em;
+	box-sizing: border-box;
+}
+
+.woocommerce-account .bp-btn--primary {
+	background: var(--bp-brand);
+	color: #fff;
+	margin-top: 4px;
+}
+
+.woocommerce-account .bp-btn--primary:hover {
+	background: var(--bp-brand-dark);
+}
+
+.woocommerce-account .bp-btn--primary:active {
+	transform: scale(0.98);
+}
+
+.woocommerce-account .bp-btn--primary:focus-visible {
+	outline: 2px solid var(--bp-brand);
+	outline-offset: 3px;
+}
+
+/* ── Auto-password note ─────────────────────────────────────────────────────── */
+.woocommerce-account .bp-auto-password-note {
+	font-size: 0.875rem;
+	color: var(--bp-text-muted);
+	margin: 0 0 16px;
+}
+
+/* ── Auth switch (toggle between panels) ───────────────────────────────────── */
+.woocommerce-account .bp-auth-switch {
+	margin: 20px 0 0;
+	text-align: center;
+	font-size: 0.875rem;
+	color: var(--bp-text-muted);
+}
+
+.woocommerce-account .bp-auth-toggle {
+	background: none;
+	border: none;
+	padding: 0;
+	color: var(--bp-brand);
+	font-size: inherit;
+	font-weight: 600;
+	cursor: pointer;
+	text-decoration: underline;
+	transition: color var(--bp-transition);
+}
+
+.woocommerce-account .bp-auth-toggle:hover {
+	color: var(--bp-brand-dark);
+}
+
+/* ── WooCommerce notices inside auth card ───────────────────────────────────── */
+.woocommerce-account .bp-auth-card .woocommerce-error,
+.woocommerce-account .bp-auth-card .woocommerce-message,
+.woocommerce-account .bp-auth-card .woocommerce-info {
+	border-radius: var(--bp-radius-input);
+	margin-bottom: 16px;
+	font-size: 0.875rem;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   LOGGED-IN — Dashboard Wrapper
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.woocommerce-account .bp-myaccount-wrapper {
+	max-width: 1100px;
+	margin: 0 auto;
+	padding: 24px 16px 60px;
+}
+
+/* ── Welcome / greeting bar ─────────────────────────────────────────────────── */
+.woocommerce-account .bp-myaccount-welcome {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	margin-bottom: 20px;
+	padding: 20px 24px;
+	background: var(--bp-bg-card);
+	border-radius: var(--bp-radius-card);
+	box-shadow: var(--bp-shadow-card);
+}
+
+.woocommerce-account .bp-myaccount-welcome__greeting {
+	font-size: 1.375rem;
+	font-weight: 700;
+	color: var(--bp-text);
+	margin: 0;
+	line-height: 1.3;
+}
+
+.woocommerce-account .bp-myaccount-welcome__avatar {
+	flex-shrink: 0;
+}
+
+.woocommerce-account .bp-myaccount-avatar {
+	width: 48px !important;
+	height: 48px !important;
+	border-radius: 50%;
+	object-fit: cover;
+	border: 2px solid var(--bp-border);
+	display: block;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   TAB NAVIGATION — Desktop (≥ 769px): horizontal strip
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.woocommerce-account .bp-myaccount-tabs {
+	background: var(--bp-bg-card);
+	border-radius: var(--bp-radius-card);
+	box-shadow: var(--bp-shadow-card);
+	margin-bottom: 20px;
+}
+
+/* ── Desktop strip ──────────────────────────────────────────────────────────── */
+.woocommerce-account .bp-myaccount-tabs__inner {
+	display: flex;
+	align-items: stretch;
+	overflow-x: auto;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	padding: 0 4px;
+}
+
+.woocommerce-account .bp-myaccount-tabs__inner::-webkit-scrollbar {
+	display: none;
+}
+
+/* Hide mobile dropdown on desktop */
+.woocommerce-account .bp-myaccount-tabs__mobile {
+	display: none;
+}
+
+/* ── Individual tab ─────────────────────────────────────────────────────────── */
+.woocommerce-account .bp-myaccount-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 14px 16px;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--bp-text-muted);
+	text-decoration: none;
+	border-bottom: 3px solid transparent;
+	white-space: nowrap;
+	transition: color var(--bp-transition), background var(--bp-transition), border-color var(--bp-transition);
+	flex-shrink: 0;
+	line-height: 1;
+}
+
+.woocommerce-account .bp-myaccount-tab:hover {
+	color: var(--bp-text);
+	background: #fafafa;
+}
+
+.woocommerce-account .bp-myaccount-tab.is-active,
+.woocommerce-account .bp-myaccount-tab[aria-current="page"] {
+	color: var(--bp-brand);
+	border-bottom-color: var(--bp-brand);
+	background: var(--bp-bg-card);
+	font-weight: 600;
+}
+
+.woocommerce-account .bp-myaccount-tab__icon {
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+/* Push logout to the far right */
+.woocommerce-account .bp-myaccount-tab.woocommerce-MyAccount-navigation-link--customer-logout {
+	margin-left: auto;
+	color: var(--bp-text-muted);
+}
+
+.woocommerce-account .bp-myaccount-tab.woocommerce-MyAccount-navigation-link--customer-logout:hover {
+	color: #b91c1c;
+}
+
+.woocommerce-account .bp-myaccount-tab:focus-visible {
+	outline: 2px solid var(--bp-brand);
+	outline-offset: -2px;
+}
+
+/* Hide WooCommerce's built-in ul/li navigation — our tab strip replaces it */
+.woocommerce-account .woocommerce-MyAccount-navigation {
+	display: none !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   CONTENT PANEL
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.woocommerce-account .bp-myaccount-content-panel {
+	background: var(--bp-bg-card);
+	border-radius: var(--bp-radius-card);
+	box-shadow: var(--bp-shadow-card);
+	padding: 32px 28px;
+	animation: bp-fade-in 0.3s ease forwards;
+	/* Clearfix — WooCommerce floats the nav left and content right by default */
+	overflow: hidden;
+}
+
+/*
+ * WooCommerce's own stylesheet sets:
+ *   .woocommerce-MyAccount-content { float: right; width: 68%; }
+ * Since our custom nav replaces the float layout, we reset it.
+ */
+.woocommerce-account .bp-myaccount-content-panel .woocommerce-MyAccount-content {
+	float: none !important;
+	width: 100% !important;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+/* ── Tables ─────────────────────────────────────────────────────────────────── */
+.woocommerce-account .bp-myaccount-content-panel table.shop_table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.woocommerce-account .bp-myaccount-content-panel table.shop_table th,
+.woocommerce-account .bp-myaccount-content-panel table.shop_table td {
+	padding: 12px 14px;
+	border-bottom: 1px solid var(--bp-border);
+	font-size: 0.875rem;
+	text-align: left;
+	vertical-align: middle;
+}
+
+.woocommerce-account .bp-myaccount-content-panel table.shop_table th {
+	font-weight: 600;
+	color: var(--bp-text);
+	background: #fafafa;
+}
+
+
+/* ── Buttons inside content ─────────────────────────────────────────────────── */
+.woocommerce-account .bp-myaccount-content-panel .woocommerce-Button,
+.woocommerce-account .bp-myaccount-content-panel .button,
+.woocommerce-account .bp-myaccount-content-panel button[type="submit"],
+.woocommerce-account .bp-myaccount-content-panel input[type="submit"] {
+	background: var(--bp-brand) !important;
+	color: #fff !important;
+	border: none !important;
+	border-radius: 6px !important;
+	padding: 9px 18px !important;
+	font-size: 0.875rem !important;
+	font-weight: 600 !important;
+	text-decoration: none !important;
+	display: inline-block !important;
+	transition: background var(--bp-transition) !important;
+	cursor: pointer !important;
+}
+
+.woocommerce-account .bp-myaccount-content-panel .woocommerce-Button:hover,
+.woocommerce-account .bp-myaccount-content-panel .button:hover,
+.woocommerce-account .bp-myaccount-content-panel button[type="submit"]:hover,
+.woocommerce-account .bp-myaccount-content-panel input[type="submit"]:hover {
+	background: var(--bp-brand-dark) !important;
+	color: #fff !important;
+}
+
+/* ── Form inputs inside content (addresses, account details) ────────────────── */
+.woocommerce-account .bp-myaccount-content-panel .woocommerce-Input,
+.woocommerce-account .bp-myaccount-content-panel input[type="text"],
+.woocommerce-account .bp-myaccount-content-panel input[type="email"],
+.woocommerce-account .bp-myaccount-content-panel input[type="password"],
+.woocommerce-account .bp-myaccount-content-panel input[type="tel"],
+.woocommerce-account .bp-myaccount-content-panel select,
+.woocommerce-account .bp-myaccount-content-panel textarea {
+	border: 1.5px solid var(--bp-border);
+	border-radius: var(--bp-radius-input);
+	padding: 10px 14px;
+	font-size: 0.9375rem;
+	width: 100%;
+	box-sizing: border-box;
+	transition: border-color var(--bp-transition), box-shadow var(--bp-transition);
+}
+
+.woocommerce-account .bp-myaccount-content-panel .woocommerce-Input:focus,
+.woocommerce-account .bp-myaccount-content-panel input[type="text"]:focus,
+.woocommerce-account .bp-myaccount-content-panel input[type="email"]:focus,
+.woocommerce-account .bp-myaccount-content-panel input[type="password"]:focus,
+.woocommerce-account .bp-myaccount-content-panel input[type="tel"]:focus,
+.woocommerce-account .bp-myaccount-content-panel select:focus,
+.woocommerce-account .bp-myaccount-content-panel textarea:focus {
+	border-color: var(--bp-brand);
+	box-shadow: 0 0 0 3px rgba(255, 42, 97, 0.10);
+	outline: none;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   MOBILE (≤ 768px): Dropdown nav replaces tab strip
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+@media ( max-width: 768px ) {
+
+	.woocommerce-account .bp-myaccount-wrapper {
+		padding: 14px 12px 48px;
+	}
+
+	.woocommerce-account .bp-myaccount-welcome {
+		padding: 14px 16px;
+		margin-bottom: 14px;
+	}
+
+	.woocommerce-account .bp-myaccount-welcome__greeting {
+		font-size: 1.125rem;
+	}
+
+	/* Hide the desktop tab strip */
+	.woocommerce-account .bp-myaccount-tabs__inner {
+		display: none;
+	}
+
+	/* Show the mobile dropdown */
+	.woocommerce-account .bp-myaccount-tabs__mobile {
+		display: block;
+		position: relative;
+		padding: 8px 12px;
+	}
+
+	/* ── Dropdown trigger button ── */
+	.woocommerce-account .bp-tab-dropdown-btn {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		background: var(--bp-bg-card);
+		border: 1.5px solid var(--bp-border);
+		border-radius: var(--bp-radius-input);
+		padding: 10px 14px;
+		font-size: 0.9375rem;
+		font-weight: 600;
+		color: var(--bp-brand);
+		cursor: pointer;
+		text-align: left;
+		transition: border-color var(--bp-transition);
+	}
+
+	.woocommerce-account .bp-tab-dropdown-btn:hover,
+	.woocommerce-account .bp-tab-dropdown-btn.is-open {
+		border-color: var(--bp-brand);
+	}
+
+	.woocommerce-account .bp-tab-dropdown-btn__label {
+		flex: 1;
+	}
+
+	.woocommerce-account .bp-tab-dropdown-btn__icon {
+		display: inline-flex;
+		align-items: center;
+		flex-shrink: 0;
+	}
+
+	.woocommerce-account .bp-tab-dropdown-btn__arrow {
+		display: inline-flex;
+		align-items: center;
+		flex-shrink: 0;
+		transition: transform var(--bp-transition);
+	}
+
+	.woocommerce-account .bp-tab-dropdown-btn.is-open .bp-tab-dropdown-btn__arrow {
+		transform: rotate(180deg);
+	}
+
+	/* ── Dropdown list ── */
+	.woocommerce-account .bp-tab-dropdown-list {
+		position: absolute;
+		top: calc(100% - 8px);
+		left: 12px;
+		right: 12px;
+		background: var(--bp-bg-card);
+		border: 1.5px solid var(--bp-border);
+		border-radius: var(--bp-radius-input);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+		list-style: none;
+		margin: 4px 0 0;
+		padding: 6px 0;
+		z-index: 200;
+		animation: bp-fade-in 0.15s ease forwards;
+	}
+
+	.woocommerce-account .bp-tab-dropdown-list[hidden] {
+		display: none;
+	}
+
+	/* ── Each dropdown item ── */
+	.woocommerce-account .bp-tab-dropdown-item {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 11px 16px;
+		font-size: 0.9rem;
+		font-weight: 500;
+		color: var(--bp-text);
+		text-decoration: none;
+		transition: background var(--bp-transition), color var(--bp-transition);
+	}
+
+	.woocommerce-account .bp-tab-dropdown-item:hover {
+		background: #fafafa;
+		color: var(--bp-brand);
+	}
+
+	.woocommerce-account .bp-tab-dropdown-item.is-active {
+		color: var(--bp-brand);
+		font-weight: 600;
+		background: rgba(255, 42, 97, 0.05);
+	}
+
+	.woocommerce-account .bp-tab-dropdown-item__icon {
+		display: inline-flex;
+		align-items: center;
+		flex-shrink: 0;
+	}
+
+	/* Logout item — red hint */
+	.woocommerce-account li:last-child .bp-tab-dropdown-item:hover {
+		color: #b91c1c;
+	}
+
+	/* Content panel on mobile */
+	.woocommerce-account .bp-myaccount-content-panel {
+		padding: 20px 16px;
+	}
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE TABLES — All content-panel tables on mobile
+   Applies to: orders, track-orders, addresses, and any other WC endpoint table.
+   Uses data-title attribute (WooCommerce adds it to every <td>) to render
+   a label before each cell value when the table stacks to single-column.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+@media ( max-width: 768px ) {
+
+	/* Convert the table → a list of "cards", one per row */
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table,
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table_responsive,
+	.woocommerce-account .bp-myaccount-content-panel table.woocommerce-orders-table {
+		display: block;
+		width: 100%;
+	}
+
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table thead,
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table_responsive thead,
+	.woocommerce-account .bp-myaccount-content-panel table.woocommerce-orders-table thead {
+		display: none; /* column headers replaced by data-title labels */
+	}
+
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table tbody,
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table_responsive tbody,
+	.woocommerce-account .bp-myaccount-content-panel table.woocommerce-orders-table tbody {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	/* Each row becomes a card */
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table tr,
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table_responsive tr,
+	.woocommerce-account .bp-myaccount-content-panel table.woocommerce-orders-table tr {
+		display: block;
+		background: var(--bp-bg-card);
+		border: 1px solid var(--bp-border);
+		border-radius: 10px;
+		padding: 14px 16px;
+		box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+	}
+
+	/* Each cell stacks vertically */
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table td,
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table_responsive td,
+	.woocommerce-account .bp-myaccount-content-panel table.woocommerce-orders-table td {
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+		padding: 7px 0;
+		border-bottom: 1px solid var(--bp-border);
+		font-size: 0.9rem;
+		text-align: left !important;
+	}
+
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table td:last-child,
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table_responsive td:last-child,
+	.woocommerce-account .bp-myaccount-content-panel table.woocommerce-orders-table td:last-child {
+		border-bottom: none;
+		padding-bottom: 0;
+	}
+
+	/* data-title label rendered above each value */
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table td[data-title]::before,
+	.woocommerce-account .bp-myaccount-content-panel table.shop_table_responsive td[data-title]::before,
+	.woocommerce-account .bp-myaccount-content-panel table.woocommerce-orders-table td[data-title]::before {
+		content: attr(data-title);
+		font-size: 0.7rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--bp-text-muted);
+	}
+
+	/* Order actions — stack buttons vertically, full width */
+	.woocommerce-account .bp-myaccount-content-panel .woocommerce-orders-table__cell-order-actions {
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.woocommerce-account .bp-myaccount-content-panel .woocommerce-orders-table__cell-order-actions a {
+		flex: 1 1 auto;
+		text-align: center;
+		min-width: 80px;
+	}
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   WISHLIST TABLE — Mobile card layout
+   The wishlist plugin (bp-wishlist-table) puts product image + name into
+   td.product-name, and the formatted price into td.product-price.
+   On mobile we reflow each row as a self-contained card.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+@media ( max-width: 768px ) {
+
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table {
+		display: block;
+		width: 100%;
+		border: none !important; /* outer table border not needed on mobile — rows are cards */
+	}
+
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table td.product-name {
+		border: none;
+	}
+
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table thead {
+		display: none;
+	}
+
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table tbody {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	/* Each product row → card */
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table tr {
+		display: flex;
+		flex-direction: column;
+		background: var(--bp-bg-card);
+		border: 1px solid var(--bp-border);
+		border-radius: 10px;
+		padding: 14px;
+		box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+		gap: 10px;
+	}
+
+	/* Product image inside the name cell */
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table td.product-name img,
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table td.product-name .wp-post-image {
+		width: 72px !important;
+		height: 72px !important;
+		object-fit: cover;
+		border-radius: 8px;
+		float: left;
+		margin: 0 12px 8px 0;
+	}
+
+	/* Price cell — shown as a badge below the product info */
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table td.product-price {
+		display: block;
+		padding: 0;
+		border: none;
+		clear: both;
+	}
+
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table td.product-price::before {
+		content: 'Price';
+		display: block;
+		font-size: 0.7rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--bp-text-muted);
+		padding-right: 3px;
+	}
+
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table td.product-price .price,
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table td.product-price .woocommerce-Price-amount {
+		font-size: 1rem;
+		font-weight: 700;
+		color: var(--bp-brand);
+	}
+
+	/* Any add-to-cart or action buttons inside wishlist rows */
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table .button,
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table .add_to_cart_button,
+	.woocommerce-account .bp-myaccount-content-panel table.bp-wishlist-table .single_add_to_cart_button {
+		width: 100%;
+		text-align: center;
+		margin-top: 4px;
+	}
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   UTILITY
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+@keyframes bp-fade-in {
+	from { opacity: 0; transform: translateY(6px); }
+	to   { opacity: 1; transform: translateY(0);   }
+}

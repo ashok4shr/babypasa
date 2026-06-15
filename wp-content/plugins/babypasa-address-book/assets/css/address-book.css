@@ -1,0 +1,314 @@
+/* ============================================================
+   BabyPasa Address Book — Shared styles for My Account + Checkout
+   ============================================================ */
+
+/* ── Notice bar ────────────────────────────────────────────── */
+
+.bp-address-book__notice {
+	padding: 12px 16px;
+	border-radius: 4px;
+	margin-bottom: 20px;
+	font-size: 14px;
+	transition: opacity 0.3s ease;
+}
+
+.bp-address-book__notice--hidden {
+	display: none;
+}
+
+.bp-address-book__notice--success {
+	background: #d4edda;
+	color: #155724;
+	border: 1px solid #c3e6cb;
+}
+
+.bp-address-book__notice--error {
+	background: #f8d7da;
+	color: #721c24;
+	border: 1px solid #f5c6cb;
+}
+
+.bp-address-book__notice--info {
+	background: #d1ecf1;
+	color: #0c5460;
+	border: 1px solid #bee5eb;
+}
+
+/* ── Address Card Grid ─────────────────────────────────────── */
+
+.bp-address-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 16px;
+	margin-bottom: 28px;
+}
+
+.bp-address-card {
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	padding: 16px;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bp-address-card--default {
+	border-color: #2c7be5;
+}
+
+.bp-address-card__header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.bp-address-card__nickname {
+	font-weight: 600;
+	font-size: 15px;
+}
+
+.bp-address-card__badge {
+	background: #2c7be5;
+	color: #fff;
+	font-size: 11px;
+	font-weight: 600;
+	padding: 2px 8px;
+	border-radius: 20px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.bp-address-card__body {
+	flex: 1;
+	font-size: 13px;
+	color: #555;
+	line-height: 1.5;
+}
+
+.bp-address-card__body p {
+	margin: 0 0 2px;
+}
+
+.bp-address-card__landmark {
+	color: #888;
+	font-style: italic;
+}
+
+.bp-address-card__actions {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+	margin-top: 8px;
+}
+
+.bp-address-card__actions .button {
+	font-size: 12px;
+	padding: 4px 10px;
+}
+
+.bp-button--danger {
+	color: #c0392b !important;
+	border-color: #c0392b !important;
+	background: transparent !important;
+}
+
+.bp-button--danger:hover {
+	background: #c0392b !important;
+	color: #fff !important;
+}
+
+/* Add new card */
+.bp-address-card--add {
+	border: 2px dashed #ccc;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 140px;
+	cursor: pointer;
+	background: #fafafa;
+	transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.bp-address-card--add:hover {
+	border-color: #2c7be5;
+	background: #f0f6ff;
+}
+
+.bp-addr-add-btn {
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: #2c7be5;
+	font-size: 15px;
+	font-weight: 600;
+	padding: 12px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.bp-addr-add-btn__icon {
+	font-size: 22px;
+	line-height: 1;
+}
+
+.bp-address-book__limit-msg {
+	font-size: 13px;
+	color: #888;
+	font-style: italic;
+	padding: 12px;
+}
+
+/* ── Add/Edit Form ─────────────────────────────────────────── */
+
+.bp-address-form-wrapper {
+	background: #f9f9f9;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	padding: 24px;
+	margin-top: 8px;
+}
+
+.bp-address-form-wrapper h3 {
+	margin-top: 0;
+	margin-bottom: 20px;
+}
+
+.bp-address-form__checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	font-size: 14px;
+}
+
+.bp-address-form__error {
+	background: #f8d7da;
+	color: #721c24;
+	border: 1px solid #f5c6cb;
+	border-radius: 4px;
+	padding: 10px 14px;
+	font-size: 13px;
+	margin-bottom: 12px;
+}
+
+.bp-address-form__buttons {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	margin-top: 8px;
+}
+
+.bp-address-book__no-locations {
+	font-size: 13px;
+	color: #e67e22;
+	display: block;
+	margin-top: 4px;
+}
+
+/* ── Checkout Picker ────────────────────────────────────────── */
+
+.bp-checkout-picker {
+	margin-bottom: 24px;
+	padding: 20px;
+	background: #f7f9fc;
+	border: 1px solid #d8e3ef;
+	border-radius: 6px;
+}
+
+.bp-checkout-picker__title {
+	font-size: 15px;
+	font-weight: 600;
+	margin: 0 0 14px;
+	color: #333;
+}
+
+.bp-checkout-picker__cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.bp-picker-card {
+	background: #fff;
+	border: 2px solid #ddd;
+	border-radius: 6px;
+	padding: 12px 14px;
+	cursor: pointer;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+	min-width: 150px;
+	max-width: 200px;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	user-select: none;
+}
+
+.bp-picker-card:hover {
+	border-color: #2c7be5;
+	box-shadow: 0 2px 8px rgba(44, 123, 229, 0.15);
+}
+
+.bp-picker-card--active {
+	border-color: #1a5cb8;
+	background: #eef5ff;
+	box-shadow: 0 2px 8px rgba(44, 123, 229, 0.25);
+}
+
+.bp-picker-card--default {
+	border-color: #adc8f0;
+}
+
+.bp-picker-card__label {
+	font-weight: 700;
+	font-size: 14px;
+	color: #222;
+}
+
+.bp-picker-card__area {
+	font-size: 12px;
+	color: #2c7be5;
+	font-weight: 500;
+}
+
+.bp-picker-card__address,
+.bp-picker-card__phone {
+	font-size: 12px;
+	color: #666;
+}
+
+.bp-checkout-picker__hint {
+	font-size: 12px;
+	color: #999;
+	margin: 0;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+
+@media ( max-width: 600px ) {
+	.bp-address-cards {
+		grid-template-columns: 1fr;
+	}
+
+	.bp-checkout-picker__cards {
+		flex-direction: column;
+	}
+
+	.bp-picker-card {
+		max-width: 100%;
+	}
+
+	.bp-address-form__buttons {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.bp-address-form__buttons .button {
+		text-align: center;
+	}
+}

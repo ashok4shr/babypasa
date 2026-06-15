@@ -1,0 +1,76 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E07 In Transit Email
+====================================================================
+
+TRIGGER
+-------
+Webhook status : "Dispatched To [Hub]" — first occurrence only
+State transition: PICKED_UP → IN_TRANSIT
+Meta update     : update_post_meta( $order_id, '_upaya_email_state', 'IN_TRANSIT' )
+
+CRITICAL — FIRE ONCE ONLY
+--------------------------
+Upaya fires "Dispatched To [Hub]" for every hub city the parcel
+passes through. This email must send exactly once — when the
+state first moves from PICKED_UP to IN_TRANSIT.
+
+The rank check in the webhook handler (see DEV_NOTE_E06_tracker_
+logic.txt) handles this automatically. Because IN_TRANSIT (rank 3)
+is only greater than PICKED_UP (rank 2), subsequent "Dispatched To"
+events will fail the rank check and be silently ignored.
+
+Do NOT use a simple is_sent flag — the rank check is safer because
+it also blocks any unexpected out-of-order webhook replays.
+
+DIFFERENCE FROM E06
+-------------------
+E07 is structurally identical to E06. Only three things change:
+
+1. Hero icon  : truck (ti-truck-delivery) instead of package
+2. Hero copy  : "Your order is on its way!" instead of "picked up"
+3. Tracker    : Steps 1, 2, 3 → completed (dark pink)
+               Step 3 "In Transit" → active with "Now" badge
+               Connectors 1→2, 2→3 → #ec4899 (completed)
+               Connectors 3→4, 4→5 → #fbcfe8 (upcoming)
+               Steps 4, 5 → upcoming (white circle, #fbcfe8 border)
+
+Recommended implementation: duplicate E06 template file, rename
+to E07, apply the three changes above. No other modifications needed.
+
+TRACKER STYLES QUICK REFERENCE (E07)
+--------------------------------------
+Step 1 (Order Placed)  : background:#ec4899  ← completed
+Step 2 (Picked Up)     : background:#ec4899  ← completed
+Step 3 (In Transit)    : background:#ec4899 + border:3px solid #9d174d ← ACTIVE
+Step 4 (Out Delivery)  : background:#ffffff; border:2px solid #fbcfe8  ← upcoming
+Step 5 (Delivered)     : background:#ffffff; border:2px solid #fbcfe8  ← upcoming
+
+Connector 1→2 : background:#ec4899  ← completed
+Connector 2→3 : background:#ec4899  ← completed
+Connector 3→4 : background:#fbcfe8  ← upcoming
+Connector 4→5 : background:#fbcfe8  ← upcoming
+
+SUBJECT LINE
+------------
+Your order #{{order_number}} is on its way! 🚚
+
+PLACEHOLDERS USED
+-----------------
+{{first_name}}       $order->get_billing_first_name()
+{{order_number}}     $order->get_order_number()
+{{tracking_code}}    Webhook payload
+{{payment_method}}   $order->get_payment_method_title()
+{{product_name}}     Loop: $item->get_name()
+{{product_qty}}      Loop: $item->get_quantity()
+
+Payment status badge: if ( $order->is_paid() ) → Paid / else → Unpaid
+
+NEXT EMAIL IN SEQUENCE
+----------------------
+E11 Out for Delivery — triggers on webhook "Out for Delivery"
+State transition: IN_TRANSIT → OUT_FOR_DELIVERY
+
+====================================================================
+END OF NOTE
+====================================================================

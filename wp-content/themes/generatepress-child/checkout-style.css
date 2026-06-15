@@ -1,0 +1,385 @@
+/* ──────────────────────────────────────────────────────────
+   Checkout — two-column layout
+   Left: billing form  |  Right: order review (sticky)
+   ────────────────────────────────────────────────────────── */
+
+.woocommerce-checkout .upaya-checkout-wrapper {
+	display: flex;
+	align-items: flex-start;
+	gap: 40px;
+}
+
+.woocommerce-checkout .upaya-checkout-left {
+	flex: 1;
+	min-width: 0;
+}
+
+/* Override WC's col2-set so it doesn't fight our wrapper */
+.woocommerce-checkout .upaya-checkout-left .col2-set {
+	display: block;
+	width: 100%;
+}
+
+.woocommerce-checkout .upaya-checkout-left .col2-set .col-1,
+.woocommerce-checkout .upaya-checkout-left .col2-set .col-2 {
+	float: none;
+	width: 100%;
+}
+
+.woocommerce-checkout .upaya-checkout-right {
+	width: 380px;
+	flex-shrink: 0;
+	position: sticky;
+	top: 20px;
+}
+
+.woocommerce-checkout .upaya-checkout-right #order_review_heading {
+	margin-top: 0;
+}
+
+/* ── "Ship to a different address?" — shipping fields ───────
+   When the shipping section is revealed it must occupy the same footprint as
+   the billing section. WooCommerce nests it in .col-2 (already forced to 100%
+   above), but the inner shipping containers and the SelectWoo delivery-area
+   dropdown can otherwise overflow the column — the latter because SelectWoo
+   computes its width while the section is still display:none (parent width 0)
+   and then renders mis-sized when shown. These rules pin every shipping
+   container to the column width with border-box sizing, exactly matching the
+   billing fields. */
+.woocommerce-checkout .upaya-checkout-left .woocommerce-shipping-fields,
+.woocommerce-checkout .upaya-checkout-left .woocommerce-shipping-fields .shipping_address,
+.woocommerce-checkout .upaya-checkout-left .woocommerce-shipping-fields__field-wrapper {
+	width: 100%;
+	max-width: 100%;
+	margin: 0;
+	box-sizing: border-box;
+}
+
+/* Match the billing form rows: full width, no float, border-box. */
+.woocommerce-checkout .upaya-checkout-left .woocommerce-shipping-fields .form-row {
+	box-sizing: border-box;
+}
+
+/* Stop the enhanced delivery-area select from blowing past the column. */
+.woocommerce-checkout .upaya-checkout-left .woocommerce-shipping-fields .select2-container {
+	width: 100% !important;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+/* ── Responsive: stack on narrow screens ────────────────── */
+@media ( max-width: 768px ) {
+	.woocommerce-checkout .upaya-checkout-wrapper {
+		flex-direction: column;
+	}
+
+	.woocommerce-checkout .upaya-checkout-right {
+		width: 100%;
+		position: static;
+	}
+}
+
+/* =========================================================================
+   STEP 4 — Checkout UI/UX polish
+   Brand #FF2A61. All rules scoped under .woocommerce-checkout.
+   ========================================================================= */
+
+.woocommerce-checkout {
+	--bp-brand: #FF2A61;
+	--bp-brand-hover: #d81b4d;
+}
+
+/* ── Column cards ───────────────────────────────────────── */
+.woocommerce-checkout .upaya-checkout-left,
+.woocommerce-checkout .upaya-checkout-right {
+	background: #fff;
+	border: 1px solid #efeff2;
+	border-radius: 14px;
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+	padding: 28px;
+	box-sizing: border-box;
+}
+
+.woocommerce-checkout .upaya-checkout-left { flex: 1; min-width: 0; }
+
+/* Section headings */
+.woocommerce-checkout h3,
+.woocommerce-checkout #order_review_heading,
+.woocommerce-checkout .woocommerce-billing-fields h3,
+.woocommerce-checkout .woocommerce-shipping-fields h3,
+.woocommerce-checkout .woocommerce-additional-fields h3 {
+	font-size: 18px;
+	font-weight: 700;
+	color: #1d1d1f;
+	margin: 0 0 18px;
+}
+
+/* ── Form rows + labels ─────────────────────────────────── */
+.woocommerce-checkout .form-row {
+	margin: 0 0 16px;
+	padding: 0;
+}
+
+.woocommerce-checkout .form-row label {
+	display: block;
+	font-size: 13px;
+	font-weight: 600;
+	color: #444;
+	margin-bottom: 6px;
+}
+
+.woocommerce-checkout .required {
+	color: var(--bp-brand);
+	border: 0;
+	text-decoration: none;
+}
+
+/* ── Inputs / selects / textarea ────────────────────────── */
+.woocommerce-checkout .input-text,
+.woocommerce-checkout textarea,
+.woocommerce-checkout select {
+	width: 100%;
+	min-height: 48px;            /* ≥44px tap target */
+	padding: 12px 14px;
+	font-size: 16px;             /* prevents iOS zoom-on-focus */
+	line-height: 1.4;
+	color: #222;
+	background: #fff;
+	border: 1.5px solid #e0e0e4;
+	border-radius: 10px;
+	box-sizing: border-box;
+	transition: border-color 0.18s ease, box-shadow 0.18s ease;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.woocommerce-checkout textarea {
+	min-height: 90px;
+	resize: vertical;
+}
+
+.woocommerce-checkout .input-text:focus,
+.woocommerce-checkout textarea:focus,
+.woocommerce-checkout select:focus {
+	border-color: var(--bp-brand);
+	box-shadow: 0 0 0 3px rgba(255, 42, 97, 0.15);
+	outline: none;
+}
+
+.woocommerce-checkout .input-text::placeholder { color: #aaa; }
+
+/* SelectWoo / select2 (delivery-area + country) — match input styling. */
+.woocommerce-checkout .select2-container--default .select2-selection--single {
+	height: 48px;
+	border: 1.5px solid #e0e0e4;
+	border-radius: 10px;
+	display: flex;
+	align-items: center;
+	padding: 0 12px;
+}
+
+.woocommerce-checkout .select2-container--default .select2-selection--single .select2-selection__rendered {
+	line-height: 1.4;
+	padding: 0;
+	color: #222;
+	font-size: 16px;
+}
+
+.woocommerce-checkout .select2-container--default .select2-selection--single .select2-selection__arrow {
+	height: 46px;
+}
+
+.woocommerce-checkout .select2-container--default.select2-container--focus .select2-selection--single,
+.woocommerce-checkout .select2-container--default.select2-container--open .select2-selection--single {
+	border-color: var(--bp-brand);
+	box-shadow: 0 0 0 3px rgba(255, 42, 97, 0.15);
+}
+
+.select2-dropdown {
+	border-color: #e0e0e4 !important;
+	border-radius: 10px !important;
+	overflow: hidden;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+	background-color: var(--bp-brand) !important;
+}
+
+/* ── Inline validation states ───────────────────────────── */
+.woocommerce-checkout .woocommerce-invalid .input-text,
+.woocommerce-checkout .woocommerce-invalid select,
+.woocommerce-checkout .woocommerce-invalid .select2-selection {
+	border-color: #e23744 !important;
+	box-shadow: 0 0 0 3px rgba(226, 55, 68, 0.12) !important;
+}
+
+.woocommerce-checkout .woocommerce-invalid label { color: #e23744; }
+
+.woocommerce-checkout .woocommerce-validated .input-text,
+.woocommerce-checkout .woocommerce-validated select {
+	border-color: #00a650;
+}
+
+/* ── "Ship to a different address?" toggle ──────────────── */
+.woocommerce-checkout #ship-to-different-address label {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 15px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+/* ── Order review table ─────────────────────────────────── */
+.woocommerce-checkout .woocommerce-checkout-review-order-table {
+	width: 100%;
+	border: none;
+	font-size: 14px;
+	margin-bottom: 18px;
+}
+
+.woocommerce-checkout .woocommerce-checkout-review-order-table th,
+.woocommerce-checkout .woocommerce-checkout-review-order-table td {
+	padding: 12px 0;
+	border-bottom: 1px solid #f0f0f2;
+}
+
+.woocommerce-checkout .woocommerce-checkout-review-order-table .order-total .woocommerce-Price-amount {
+	color: var(--bp-brand);
+	font-size: 18px;
+	font-weight: 700;
+}
+
+/* ── Payment box ────────────────────────────────────────── */
+.woocommerce-checkout #payment {
+	background: #fafafb;
+	border-radius: 12px;
+	padding: 4px 0;
+}
+
+.woocommerce-checkout #payment ul.payment_methods {
+	border: none;
+	padding: 0;
+	margin: 0 0 8px;
+}
+
+.woocommerce-checkout #payment ul.payment_methods li {
+	padding: 12px 14px;
+	border: 1.5px solid #ececef;
+	border-radius: 10px;
+	margin-bottom: 10px;
+	list-style: none;
+}
+
+.woocommerce-checkout #payment ul.payment_methods li input[type="radio"] {
+	accent-color: var(--bp-brand);
+	width: 18px;
+	height: 18px;
+	margin-right: 8px;
+}
+
+.woocommerce-checkout #payment div.payment_box {
+	background: #fff;
+	border-radius: 8px;
+}
+
+.woocommerce-checkout #payment div.payment_box::before { display: none; }
+
+/* ── Place Order — full-width brand pill ────────────────── */
+.woocommerce-checkout #place_order {
+	width: 100%;
+	min-height: 54px;
+	background: var(--bp-brand) !important;
+	color: #fff !important;
+	font-size: 16px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	border: none;
+	border-radius: 999px;
+	cursor: pointer;
+	transition: background-color 0.2s ease, transform 0.12s ease, box-shadow 0.2s ease;
+}
+
+.woocommerce-checkout #place_order:hover {
+	background: var(--bp-brand-hover) !important;
+	box-shadow: 0 8px 22px rgba(255, 42, 97, 0.32);
+}
+
+.woocommerce-checkout #place_order:active { transform: scale(0.985); }
+
+/* ── Mobile order-summary accordion toggle (built by checkout.js) ── */
+.bp-summary-toggle { display: none; }
+
+.woocommerce-checkout .bp-summary-toggle {
+	width: 100%;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	background: #f7f7f8;
+	border: 1.5px solid #ececef;
+	border-radius: 10px;
+	padding: 14px 16px;
+	margin-bottom: 14px;
+	font-size: 15px;
+	font-weight: 700;
+	color: #1d1d1f;
+	cursor: pointer;
+}
+
+.woocommerce-checkout .bp-summary-toggle__label {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.woocommerce-checkout .bp-summary-toggle__total {
+	color: var(--bp-brand);
+	font-size: 16px;
+}
+
+.woocommerce-checkout .bp-summary-toggle__chevron {
+	transition: transform 0.25s ease;
+}
+
+.woocommerce-checkout .bp-summary-toggle[aria-expanded="true"] .bp-summary-toggle__chevron {
+	transform: rotate(180deg);
+}
+
+/* ── Mobile layout ──────────────────────────────────────── */
+@media ( max-width: 768px ) {
+	.woocommerce-checkout .upaya-checkout-left,
+	.woocommerce-checkout .upaya-checkout-right {
+		padding: 18px;
+		border-radius: 12px;
+	}
+
+	/* Show the accordion toggle and let it collapse the items table. */
+	.woocommerce-checkout .bp-summary-toggle { display: flex; }
+
+	.woocommerce-checkout #order_review_heading { display: none; } /* toggle bar replaces it */
+
+	.woocommerce-checkout #order_review.bp-summary-collapsed .woocommerce-checkout-review-order-table {
+		display: none;
+	}
+
+	/* Keep Place Order reachable without hunting for it. */
+	.woocommerce-checkout .place-order {
+		position: sticky;
+		bottom: 0;
+		background: #fff;
+		padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+		margin: 0 -18px -18px;
+		padding-left: 18px;
+		padding-right: 18px;
+		box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+		z-index: 5;
+	}
+}
+
+/* On desktop the accordion never hides the table, regardless of class. */
+@media ( min-width: 769px ) {
+	.woocommerce-checkout #order_review.bp-summary-collapsed .woocommerce-checkout-review-order-table {
+		display: table;
+	}
+}

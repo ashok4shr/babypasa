@@ -1,0 +1,178 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E15 Order Cancelled
+====================================================================
+
+TRIGGER
+-------
+Hook   : woocommerce_order_status_cancelled
+Source : Fires when order status changes to "cancelled" — either
+         by the customer from My Account, or by admin from the
+         WooCommerce order panel
+
+  add_action( 'woocommerce_order_status_cancelled',
+  function( $order_id ) {
+      if ( get_post_meta( $order_id, '_e15_sent', true ) ) return;
+
+      $order = wc_get_order( $order_id );
+      if ( ! $order ) return;
+
+      $first_name   = $order->get_billing_first_name();
+      $order_number = $order->get_order_number();
+      $was_paid     = $order->is_paid();
+      $order_total  = wc_price( $order->get_total() );
+
+      // Build items list
+      $items = [];
+      foreach ( $order->get_items() as $item ) {
+          $items[] = [
+              'name' => $item->get_name(),
+              'qty'  => $item->get_quantity(),
+          ];
+      }
+
+      // Refund info — only shown if payment was collected
+      $refund_info = null;
+      if ( $was_paid ) {
+          $refund_info = [
+              'amount'   => $order_total,
+              'method'   => babypasa_get_refund_label(
+                                $order->get_payment_method() ),
+              'note'     => babypasa_get_refund_note(
+                                $order->get_payment_method() ),
+              'timeline' => '3–5 business days',
+          ];
+      }
+
+      babypasa_send_email(
+          $order->get_billing_email(),
+          'Your order #' . $order_number . ' has been cancelled',
+          'e15-order-cancelled',
+          compact(
+              'first_name', 'order_number',
+              'items', 'refund_info'
+          )
+      );
+
+      update_post_meta( $order_id, '_e15_sent', '1' );
+  });
+
+====================================================================
+REFUND LABEL MAP
+====================================================================
+Maps gateway slug → customer-facing refund method label.
+Same pattern as E04 tips — add new gateway = one array entry.
+
+  function babypasa_get_refund_label( $payment_slug ) {
+      $labels = [
+          'connectips' => 'Bank Transfer',
+          'esewa'      => 'eSewa Wallet',
+          'khalti'     => 'Khalti Wallet',
+          'bacs'       => 'Bank Transfer',
+          'cod'        => 'Cash on Delivery',
+      ];
+      return $labels[ $payment_slug ] ?? 'Original payment method';
+  }
+
+REFUND NOTE MAP
+===============
+Secondary line below the refund table — explains which account
+or wallet the refund goes to. Only shown for gateway types where
+this is non-obvious to the customer.
+
+  function babypasa_get_refund_note( $payment_slug ) {
+      $notes = [
+          'connectips' => 'The refund will be credited to the bank
+                          account linked to your ConnectIPS transaction.',
+          'esewa'      => 'The refund will be credited to your
+                          eSewa wallet within 3–5 business days.',
+          'khalti'     => 'The refund will be credited to your
+                          Khalti wallet within 3–5 business days.',
+          'bacs'       => 'The refund will be credited to the bank
+                          account used for payment.',
+          'cod'        => null, // No refund note for COD
+      ];
+      return $notes[ $payment_slug ] ?? null;
+  }
+
+====================================================================
+CONDITIONAL REFUND BLOCK IN TEMPLATE
+====================================================================
+The refund details section is ONLY rendered when $refund_info
+is not null (i.e. when $order->is_paid() === true).
+
+PHP in template:
+
+  <?php if ( $refund_info ) : ?>
+    <!-- Render refund block with $refund_info data -->
+    <!-- Show $refund_info['note'] only if not null -->
+  <?php endif; ?>
+
+Cases where refund block is hidden:
+  - Order status was "pending" when cancelled (never paid)
+  - COD order cancelled before delivery (no payment yet)
+  - Order with failed payment that was then cancelled
+
+Cases where refund block is shown:
+  - Paid order cancelled by customer from My Account
+  - Paid order cancelled by admin
+  - Partially refunded order (show remaining balance)
+
+====================================================================
+IMPORTANT — WOOCOMMERCE REFUND TIMING
+====================================================================
+This email confirms the CANCELLATION, not the actual refund.
+WooCommerce does not automatically issue refunds when an order
+is cancelled — the refund must be processed manually or via the
+payment gateway's API.
+
+Workflow:
+  1. Admin cancels order → E15 fires (tells customer refund coming)
+  2. Admin processes refund in WooCommerce order panel
+     (Refund button → enter amount → submit)
+  3. ConnectIPS/gateway processes refund → E21 fires (refund confirmed)
+
+Do NOT use E15 as confirmation that money has been returned.
+E15 = "we're processing it". E21 = "money is on its way".
+
+====================================================================
+CANCELLED BADGE IN ORDER TABLE HEADER
+====================================================================
+The red "Cancelled" badge uses:
+  background: #fee2e2;   (red-100)
+  color:      #991b1b;   (red-800)
+  padding:    3px 10px;
+  border-radius: 4px;
+
+This is the only red element in the entire email system.
+Everything else stays pink. Using red only for this badge
+gives it maximum contrast without alarming the whole template.
+
+====================================================================
+SUBJECT LINE
+====================================================================
+  Your order #{{order_number}} has been cancelled
+
+====================================================================
+PLACEHOLDERS USED
+====================================================================
+  {{first_name}}        $order->get_billing_first_name()
+  {{order_number}}      $order->get_order_number()
+  {{product_name}}      Loop: $item->get_name()
+  {{product_qty}}       Loop: $item->get_quantity()
+  {{order_total}}       wc_price( $order->get_total() )
+  {{refund_method}}     babypasa_get_refund_label( $payment_slug )
+  {{refund_timeline}}   '3–5 business days' (static)
+  {{refund_note}}       babypasa_get_refund_note( $payment_slug )
+
+  Conditional block: render only when $order->is_paid() === true
+
+====================================================================
+NEXT EMAIL IN SEQUENCE
+====================================================================
+E21 — Refund Processed — fires when admin issues the actual refund
+via WooCommerce refund panel (hook: woocommerce_order_refunded)
+
+====================================================================
+END OF NOTE
+====================================================================

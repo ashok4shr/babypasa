@@ -1,0 +1,320 @@
+/* Custom Footer Styles */
+
+.bp-footer {
+    background-color: #1f1f1f;
+    color: #e5e5e5;
+    padding: 70px 0 30px;
+}
+
+.bp-footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.bp-footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.5fr;
+    gap: 40px;
+    margin-bottom: 50px;
+}
+
+.bp-footer-title {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 25px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Shop Info */
+.bp-shop-info p {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #a0a0a0;
+    margin-bottom: 25px;
+}
+.bp-footer-logo {
+    max-width: 160px;
+    height: auto;
+    background: #ffffff;
+    padding: 10px 15px;
+    border-radius: 4px;
+}
+
+/* Lists */
+.bp-footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.bp-footer-links li {
+    margin-bottom: 15px;
+}
+.bp-footer-links a {
+    color: #a0a0a0;
+    text-decoration: none;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.3s ease;
+}
+.bp-footer-links a::before {
+    content: "\203A"; /* Unicode for single right-pointing angle quotation mark */
+    margin-right: 8px;
+    font-size: 18px;
+    line-height: 1;
+    color: #ffffff;
+    transition: color 0.3s ease;
+}
+.bp-footer-links a:hover,
+.bp-footer-links a:hover::before {
+    color: #FF2A61; /* Requested red hover */
+}
+
+/* Newsletter */
+.bp-newsletter p {
+    font-size: 14px;
+    margin-bottom: 20px;
+    color: #a0a0a0;
+}
+.bp-newsletter-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.bp-newsletter-form input {
+    width: 100%;
+    padding: 12px 15px;
+    border: none;
+    background-color: #ffffff;
+    color: #333333;
+    font-size: 14px;
+    border-radius: 2px;
+}
+.bp-newsletter-form input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+.bp-newsletter-form button {
+    background-color: #ffea00; /* Yellow button matching screenshot */
+    color: #000000;
+    font-weight: 700;
+    font-size: 13px;
+    border: none;
+    padding: 12px 25px;
+    cursor: pointer;
+    border-radius: 2px;
+    align-self: flex-start;
+    transition: background-color 0.3s;
+}
+.bp-newsletter-form button:hover {
+    background-color: #e6d300;
+}
+
+/* Footer Bottom */
+.bp-footer-bottom {
+    border-top: 1px solid #333333;
+    padding-top: 25px;
+    text-align: left;
+}
+.bp-footer-bottom p {
+    font-size: 13px;
+    color: #888888;
+    margin: 0;
+}
+
+/* ── Mobile Bottom Nav — Categories Sheet ──────────────────────────── */
+.mbn-cats-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 10000; /* above mobile nav (9999) */
+}
+.mbn-cats-overlay.is-visible {
+    display: block;
+}
+.mbn-cats-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    z-index: 10001; /* above overlay and mobile nav */
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    max-height: 80vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.mbn-cats-sheet.is-open {
+    transform: translateY(0);
+}
+.mbn-cats-sheet__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 16px;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 1;
+}
+.mbn-cats-sheet__title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+.mbn-cats-sheet__close {
+    background: none;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.2s, color 0.2s;
+}
+.mbn-cats-sheet__close:hover {
+    border-color: #FF2A61;
+    color: #FF2A61;
+}
+.mbn-cats-sheet__list {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 30px;
+}
+.mbn-cats-sheet__list li {
+    border-bottom: 1px solid #f0f0f0;
+}
+.mbn-cats-sheet__list li:last-child {
+    border-bottom: none;
+}
+.mbn-cats-sheet__list a {
+    display: block;
+    padding: 18px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #1a1a1a;
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+}
+.mbn-cats-sheet__list a:hover,
+.mbn-cats-sheet__list a:focus-visible {
+    color: #FF2A61;
+    background: #fafafa;
+}
+
+/* ── WhatsApp Community Banner ──────────────────────────────────────── */
+.bp-wa-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: #1a2a1a;
+    border-radius: 8px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+}
+.bp-wa-banner__icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+.bp-wa-banner__text {
+    flex: 1;
+    font-size: 14px;
+    color: #e5e5e5;
+    min-width: 0;
+}
+.bp-wa-banner__link {
+    background: #25D366;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+}
+.bp-wa-banner__link:hover {
+    background: #1ebe5b;
+    color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .bp-footer-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .bp-footer { padding: 50px 0 30px; }
+    .bp-footer-grid { margin-bottom: 35px; }
+    .bp-footer-title { margin-bottom: 18px; }
+}
+
+@media (max-width: 767px) {
+    /* Hide the Shop Info column on mobile — not useful on small screens */
+    .bp-footer-grid .bp-shop-info {
+        display: none;
+    }
+    /* Tighten link list spacing */
+    .bp-footer-links li {
+        margin-bottom: 6px;
+    }
+    .bp-footer-links a {
+        font-size: 13px;
+    }
+    /* Compact banner layout */
+    .bp-wa-banner {
+        padding: 12px 14px;
+        gap: 8px;
+        margin-bottom: 28px;
+    }
+    .bp-wa-banner__text {
+        font-size: 13px;
+        flex-basis: calc(100% - 80px);
+    }
+}
+
+@media (max-width: 576px) {
+    .bp-footer-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    .bp-footer-grid .bp-newsletter {
+        grid-column: 1 / -1;
+    }
+    .bp-newsletter-form button {
+        width: 100%;
+        align-self: stretch;
+    }
+    .bp-footer-bottom {
+        text-align: center;
+    }
+    .bp-footer { padding: 30px 0 100px; }
+    .bp-footer-grid { margin-bottom: 25px; }
+    .bp-footer-title { margin-bottom: 12px; }
+    .bp-shop-info p { margin-bottom: 12px; }
+    .bp-newsletter p { margin-bottom: 10px; }
+    .bp-newsletter-form { gap: 10px; }
+    .bp-footer-bottom { padding-top: 15px; }
+    .bp-wa-banner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .bp-wa-banner__link {
+        width: 100%;
+        text-align: center;
+    }
+}

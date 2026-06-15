@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="132" height="32" viewBox="0 0 132 32" role="img" aria-label="connectIPS">
+  <g fill="none" fill-rule="evenodd">
+    <rect width="132" height="32" rx="5" fill="#ffffff"/>
+    <circle cx="18" cy="16" r="10" fill="#0a4a8f"/>
+    <path d="M22.4 12.6a5.4 5.4 0 1 0 0 6.8" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+    <text x="35" y="21" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="-.2">
+      <tspan fill="#0a4a8f">connect</tspan><tspan fill="#e2231a">IPS</tspan>
+    </text>
+  </g>
+</svg>

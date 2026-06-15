@@ -1,0 +1,120 @@
+/* BabyPasa Admin Order Enhancements */
+
+/* ── Hide WooCommerce's default billing/shipping address UI ──────────────────
+ * The custom Delivery Address form replaces it. WC re-reveals div.edit_address
+ * (with inline styles) when a customer is selected, so !important is required.
+ * Our form (#bp-aoe-address-wrap) renders as a sibling AFTER div.edit_address,
+ * so it is unaffected. These selectors only match the billing/shipping columns
+ * (the General column has no .address / .edit_address / load links).
+ */
+.order_data_column > .address,
+.order_data_column > .edit_address,
+.order_data_column h3 a.edit_address,
+.order_data_column .load_customer_billing,
+.order_data_column .load_customer_shipping,
+.order_data_column .billing-same-as-shipping {
+	display: none !important;
+}
+
+/* ── Address form ───────────────────────────────────────────────────────── */
+#bp-aoe-address-wrap {
+	margin-top: 12px;
+}
+
+#bp-aoe-address-wrap h4 {
+	font-size: 13px;
+	font-weight: 600;
+	color: #1d2327;
+	border-bottom: 1px solid #e0e0e0;
+	padding-bottom: 6px;
+	margin-bottom: 10px;
+}
+
+.bp-aoe-field-row {
+	margin-bottom: 8px;
+}
+
+.bp-aoe-field-row label {
+	display: block;
+	font-size: 12px;
+	font-weight: 600;
+	margin-bottom: 3px;
+	color: #50575e;
+}
+
+.bp-aoe-field-row input[type="text"],
+.bp-aoe-field-row input[type="tel"],
+.bp-aoe-field-row input[type="email"],
+.bp-aoe-field-row select {
+	width: 100%;
+	max-width: 100%;
+}
+
+.bp-aoe-two-col {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+
+.bp-aoe-toggle-row {
+	margin-top: 12px;
+	padding-top: 8px;
+	border-top: 1px solid #e0e0e0;
+}
+
+.bp-aoe-toggle-row label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.bp-aoe-toggle-row input[type="checkbox"] {
+	margin: 0;
+}
+
+#bp-aoe-shipping-address {
+	margin-top: 8px;
+	padding: 10px;
+	background: #f9f9f9;
+	border: 1px solid #e0e0e0;
+	border-radius: 3px;
+}
+
+/* ── Shipping rate display ───────────────────────────────────────────────── */
+#bp-aoe-shipping-rate-row {
+	margin: 6px 0 10px;
+	padding: 6px 10px;
+	background: #eaf4ea;
+	border-left: 3px solid #1d8348;
+	border-radius: 2px;
+	font-size: 12px;
+	color: #1d8348;
+	font-weight: 600;
+}
+
+/* ── Payment status meta box ────────────────────────────────────────────── */
+#bp-aoe-payment-status p {
+	margin: 0 0 6px;
+}
+
+#bp-aoe-payment-status label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13px;
+	cursor: pointer;
+}
+
+#bp-aoe-amount-paid-row {
+	margin-left: 20px;
+	margin-bottom: 8px;
+}
+
+#bp-aoe-amount-paid-row label {
+	font-size: 12px;
+	font-weight: 600;
+	color: #50575e;
+}

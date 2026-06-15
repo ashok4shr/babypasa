@@ -1,0 +1,24 @@
+/**
+ * ConnectIPS checkout presentation.
+ *
+ * Scopes the gateway logo sizing to the WooCommerce payment list so it does
+ * not bleed into other gateway icons or anywhere else on the page.
+ */
+
+.woocommerce-checkout .wc_payment_method.payment_method_babypasa_connectips label img.bc-gateway-logo,
+.woocommerce-checkout li.payment_method_babypasa_connectips label img.bc-gateway-logo {
+	height: 60px;
+	width: auto;
+	max-width: 140px;
+	margin: 0 0 0 8px;
+	vertical-align: middle;
+}
+
+@media (max-width: 480px) {
+
+	.woocommerce-checkout .wc_payment_method.payment_method_babypasa_connectips label img.bc-gateway-logo,
+	.woocommerce-checkout li.payment_method_babypasa_connectips label img.bc-gateway-logo {
+		height: 50px;
+		max-width: 110px;
+	}
+}

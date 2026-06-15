@@ -1,0 +1,269 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E10 In Transit Too Long — Full Logic & Code
+====================================================================
+
+OVERVIEW
+--------
+E10 fires when an order has been in IN_TRANSIT state for 3 days
+with zero Upaya webhook activity. It fires once per order, at
+9:00 AM NPT daily. No weekends/holidays — Upaya operates 7 days.
+
+====================================================================
+STEP 1 — STAMP LAST WEBHOOK TIME ON EVERY UPAYA HIT
+====================================================================
+In your webhook handler, write a timestamp to the order on EVERY
+incoming Upaya status update — including hub arrivals and received
+events that don't trigger a customer email. This keeps the clock
+accurate for any parcel in active movement.
+
+  function babypasa_handle_upaya_webhook( $payload ) {
+      $order_id = babypasa_resolve_order_id( $payload );
+      if ( ! $order_id ) return;
+
+      // ── Always stamp last webhook time ──────────────────────
+      update_post_meta( $order_id, '_upaya_last_webhook_at', time() );
+
+      $status  = $payload['status'] ?? '';
+      $current = get_post_meta( $order_id, '_upaya_email_state', true );
+
+      // ── State map ────────────────────────────────────────────
+      $map = [
+          'Pickup Process'   => 'PICKED_UP',
+          'Dispatched To'    => 'IN_TRANSIT',
+          'Out for Delivery' => 'OUT_FOR_DELIVERY',
+          'Delivered'        => 'DELIVERED',
+          'Return Process'   => 'RTO',
+          'Follow Up'        => 'FOLLOW_UP',
+      ];
+
+      $new_state = null;
+      foreach ( $map as $keyword => $state ) {
+          if ( str_contains( $status, $keyword ) ) {
+              $new_state = $state;
+              break;
+          }
+      }
+
+      if ( $new_state
+           && babypasa_state_rank( $new_state )
+              > babypasa_state_rank( $current ) ) {
+          update_post_meta( $order_id, '_upaya_email_state', $new_state );
+          babypasa_send_webhook_email( $order_id, $new_state );
+      }
+      // Suppressed events (Arrived At, Received At) still update
+      // _upaya_last_webhook_at above — they reset the 3-day clock
+      // without triggering a customer email.
+  }
+
+  function babypasa_state_rank( $state ) {
+      return array_search( $state, [
+          'ORDER_PLACED', 'PICKED_UP', 'IN_TRANSIT',
+          'OUT_FOR_DELIVERY', 'DELIVERED', 'RTO', 'FOLLOW_UP',
+      ], true ) ?? -1;
+  }
+
+====================================================================
+STEP 2 — REGISTER DAILY CRON AT 9:00 AM NPT (03:15 UTC)
+====================================================================
+Run once on plugin/theme activation. This sets the first occurrence
+then WP-Cron repeats it daily automatically.
+
+  register_activation_hook( __FILE__,
+  function() {
+      if ( wp_next_scheduled( 'babypasa_daily_transit_check' ) ) return;
+
+      // 03:15 UTC = 09:00 AM NPT (UTC+5:45)
+      $now_utc    = time();
+      $target_utc = strtotime( gmdate( 'Y-m-d', $now_utc ) . ' 03:15:00' );
+
+      // If today's 03:15 UTC has already passed, start tomorrow
+      if ( $target_utc <= $now_utc ) {
+          $target_utc += DAY_IN_SECONDS;
+      }
+
+      wp_schedule_event(
+          $target_utc,
+          'daily',
+          'babypasa_daily_transit_check'
+      );
+  });
+
+  // Clean up on deactivation
+  register_deactivation_hook( __FILE__, function() {
+      wp_clear_scheduled_hook( 'babypasa_daily_transit_check' );
+  });
+
+====================================================================
+STEP 3 — DAILY CRON HANDLER
+====================================================================
+
+  add_action( 'babypasa_daily_transit_check', function() {
+
+      // Fetch all orders currently in IN_TRANSIT state
+      $orders = wc_get_orders([
+          'meta_key'     => '_upaya_email_state',
+          'meta_value'   => 'IN_TRANSIT',
+          'meta_compare' => '=',
+          'status'       => [ 'wc-processing', 'wc-on-hold' ],
+          'limit'        => -1,
+          'return'       => 'objects',
+      ]);
+
+      if ( empty( $orders ) ) return;
+
+      $now = time();
+
+      foreach ( $orders as $order ) {
+          $order_id = $order->get_id();
+
+          // Skip if E10 already sent for this order
+          if ( get_post_meta( $order_id, '_e10_sent', true ) ) continue;
+
+          // Get last Upaya webhook timestamp
+          $last_hit = (int) get_post_meta(
+              $order_id, '_upaya_last_webhook_at', true
+          );
+
+          // Fallback: if no stamp exists, use order creation time
+          if ( ! $last_hit ) {
+              $last_hit = $order->get_date_created()->getTimestamp();
+          }
+
+          $days_silent = ( $now - $last_hit ) / DAY_IN_SECONDS;
+
+          // Fire E10 after 3 days of complete Upaya silence
+          if ( $days_silent >= 3 ) {
+              babypasa_send_e10( $order_id, $order );
+          }
+      }
+  });
+
+====================================================================
+STEP 4 — E10 SEND FUNCTION
+====================================================================
+
+  function babypasa_send_e10( $order_id, $order = null ) {
+      if ( ! $order ) $order = wc_get_order( $order_id );
+      if ( ! $order ) return;
+
+      // Guard: state must still be IN_TRANSIT
+      $state = get_post_meta( $order_id, '_upaya_email_state', true );
+      if ( $state !== 'IN_TRANSIT' ) return;
+
+      // Guard: order must still be active
+      $bad_statuses = [ 'cancelled', 'refunded', 'failed' ];
+      if ( in_array( $order->get_status(), $bad_statuses, true ) ) return;
+
+      // Guard: do not resend
+      if ( get_post_meta( $order_id, '_e10_sent', true ) ) return;
+
+      $first_name    = $order->get_billing_first_name();
+      $order_number  = $order->get_order_number();
+      $tracking_code = get_post_meta( $order_id, '_upaya_tracking_code', true );
+
+      // Build items list
+      $items = [];
+      foreach ( $order->get_items() as $item ) {
+          $items[] = [
+              'name' => $item->get_name(),
+              'qty'  => $item->get_quantity(),
+          ];
+      }
+
+      // Track order URL
+      $track_url   = home_url( '/my-account/track-orders/' );
+      $support_url = 'mailto:support@babypasa.com';
+
+      babypasa_send_email(
+          $order->get_billing_email(),
+          'An update on your order #' . $order_number . ', ' . $first_name,
+          'e10-in-transit-too-long',
+          compact(
+              'first_name', 'order_number', 'tracking_code',
+              'items', 'track_url', 'support_url'
+          )
+      );
+
+      // Mark as sent — do NOT send again for this order
+      update_post_meta( $order_id, '_e10_sent', '1' );
+
+      // Internal flag: log that we alerted the team too
+      // (optional — for admin dashboard monitoring)
+      update_post_meta( $order_id, '_e10_sent_at', time() );
+  }
+
+====================================================================
+STEP 5 — INTERNAL ALERT (OPTIONAL BUT RECOMMENDED)
+====================================================================
+When E10 fires, also notify your support team internally so they
+can proactively follow up with Upaya before the customer escalates:
+
+  // Inside babypasa_send_e10(), after the customer email:
+  wp_mail(
+      'support@babypasa.com',
+      '[ACTION NEEDED] Order #' . $order_number . ' stuck in transit',
+      'Order #' . $order_number . ' has had no Upaya update for 3+ days.
+Customer: ' . $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() . '
+Email: ' . $order->get_billing_email() . '
+Tracking: ' . $tracking_code . '
+Order admin: ' . admin_url( 'post.php?post=' . $order_id . '&action=edit' )
+  );
+
+====================================================================
+TRACKER BADGE NOTE
+====================================================================
+E10 uses a modified tracker — step 3 (In Transit) shows:
+  - A clock icon instead of checkmark inside the circle
+  - "Checking" badge instead of "Now"
+  - Everything else identical to E07
+
+In the HTML template, the step 3 circle SVG is a clock icon:
+  stroke path for clock face + hands
+Badge text: "Checking" (not "Now")
+
+====================================================================
+TIMING SUMMARY
+====================================================================
+  Threshold : 3 days of zero Upaya webhook activity
+  Fires at  : 09:00 AM NPT (03:15 UTC) daily
+  Fires once: Yes — _e10_sent flag prevents repeat
+  No holidays: Upaya operates 7 days, no weekend adjustment
+
+CRITICAL — stamp _upaya_last_webhook_at on EVERY webhook hit,
+including suppressed events (Arrived At, Received At).
+Without this, the 3-day clock is based on the LAST EMAILED event
+(E07), not actual Upaya activity. An active parcel could
+incorrectly trigger E10 if it passed through a hub silently.
+
+====================================================================
+SUBJECT LINE
+====================================================================
+  An update on your order #{{order_number}}, {{first_name}}
+
+(Neutral subject — does not say "delayed" or "problem".
+Customer opens it to find out what's happening.)
+
+====================================================================
+PLACEHOLDERS USED
+====================================================================
+  {{first_name}}      $order->get_billing_first_name()
+  {{order_number}}    $order->get_order_number()
+  {{tracking_code}}   get_post_meta( $order_id, '_upaya_tracking_code' )
+  {{product_name}}    Loop: $item->get_name()
+  {{product_qty}}     Loop: $item->get_quantity()
+  {{track_url}}       home_url( '/my-account/track-orders/' )
+  {{support_url}}     mailto:support@babypasa.com
+
+====================================================================
+NEXT EMAIL IN SEQUENCE
+====================================================================
+None triggered by E10.
+If Upaya later sends Out for Delivery → E11 fires normally.
+If Upaya sends RTO → E17 fires normally.
+State machine handles both — E10 is a parallel notification,
+not a branch in the main flow.
+
+====================================================================
+END OF NOTE
+====================================================================

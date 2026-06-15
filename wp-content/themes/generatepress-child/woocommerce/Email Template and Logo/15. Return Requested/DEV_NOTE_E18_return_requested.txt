@@ -1,0 +1,133 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E18 Return Requested (Customer-Initiated)
+====================================================================
+
+TRIGGER
+-------
+Hook   : WooCommerce return/refund request submission
+Source : Customer submits return request from My Account
+         → Orders → View Order → Request Return
+
+WooCommerce does not have a native return request system.
+Use one of:
+
+  OPTION A (Plugin): WooCommerce Return & Warranty Requests
+  by WP Desk — hooks: wcrw_new_return_request
+
+  OPTION B (Custom): Add a "Request Return" button to the
+  My Account order page. On submission, create a WooCommerce
+  order note and fire E18.
+
+  add_action( 'babypasa_return_requested',
+  function( $order_id, $return_items, $reason ) {
+      if ( get_post_meta( $order_id, '_e18_sent', true ) ) return;
+
+      $order        = wc_get_order( $order_id );
+      if ( ! $order ) return;
+
+      $first_name   = $order->get_billing_first_name();
+      $order_number = $order->get_order_number();
+
+      // Store return request meta for E19 (approval)
+      update_post_meta( $order_id, '_return_requested', '1' );
+      update_post_meta( $order_id, '_return_items',
+          wp_json_encode( $return_items ) );
+      update_post_meta( $order_id, '_return_reason', $reason );
+      update_post_meta( $order_id, '_return_requested_at', time() );
+
+      babypasa_send_email(
+          $order->get_billing_email(),
+          'We\'ve received your return request — Order #'
+              . $order_number,
+          'e18-return-requested',
+          compact( 'first_name', 'order_number', 'return_items' )
+      );
+
+      update_post_meta( $order_id, '_e18_sent', '1' );
+  }, 10, 3 );
+
+====================================================================
+RETURN ITEMS FORMAT
+====================================================================
+$return_items is an array of items the customer wants to return.
+This may be all items or a subset (partial return):
+
+  $return_items = [
+      [
+          'name' => 'Zuvara Diapers — Size M',
+          'qty'  => 2,
+      ],
+      [
+          'name' => 'BIM Australian Formula — Stage 2',
+          'qty'  => 1,
+      ],
+  ];
+
+If using a plugin, map the plugin's return item data to this format.
+
+====================================================================
+PENDING INSTRUCTIONS BLOCK
+====================================================================
+Four instructions shown in the pink box while request is pending.
+These are STATIC — no dynamic content needed.
+They reduce back-and-forth support queries by 80%:
+
+  1. Keep original packaging     → speeds up inspection
+  2. Don't use sealed products   → ensures resalable condition
+  3. Keep order number handy     → {{order_number}} injected
+  4. Don't ship yet              → most critical — prevents
+                                    premature returns arriving
+                                    before approval
+
+The order number in instruction 3 is the only dynamic element:
+  "Keep your order number <strong>#{{order_number}}</strong> handy"
+
+====================================================================
+WHAT HAPPENS NEXT — 3 STEPS (STATIC COPY)
+====================================================================
+Step 1: We review your request (1–2 business days)
+Step 2: You'll receive return instructions (E19 fires on approval)
+Step 3: Refund processed after inspection (E21 fires on refund)
+
+These steps are static — no dynamic content.
+They set expectations for E19 and E21 so customers know
+exactly what's coming and don't contact support asking.
+
+====================================================================
+DIFFERENCE FROM E17 (RTO)
+====================================================================
+E17 = logistics-triggered return (Upaya couldn't deliver)
+     Customer receives the parcel → not applicable
+
+E18 = customer-initiated return (received item, wants to return)
+     Customer has the parcel → packaging instructions relevant
+
+Never fire both for the same order. E17 fires from webhook.
+E18 fires from customer action on My Account.
+
+====================================================================
+SUBJECT LINE
+====================================================================
+  We've received your return request — Order #{{order_number}}
+
+====================================================================
+PLACEHOLDERS USED
+====================================================================
+  {{first_name}}      $order->get_billing_first_name()
+  {{order_number}}    $order->get_order_number()
+  {{product_name}}    Loop: $return_items[]['name']
+  {{product_qty}}     Loop: $return_items[]['qty']
+
+  All pending instructions are STATIC except {{order_number}}
+  in instruction #3.
+
+====================================================================
+NEXT EMAIL IN SEQUENCE
+====================================================================
+E19 — Return Approved — fired manually by admin after reviewing
+      the return request (1–2 business days)
+
+====================================================================
+END OF NOTE
+====================================================================

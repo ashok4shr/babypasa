@@ -1,0 +1,158 @@
+/* HOMEPAGE STYLES */
+
+.bp-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Hero Section */
+.bp-hero-section {
+    width: 100%;
+    margin-bottom: 40px;
+}
+.bp-hero-slider {
+    position: relative;
+    overflow: hidden;
+}
+.bp-hero-slider .bp-slider-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+.bp-hero-slider .bp-slider-track::-webkit-scrollbar {
+    display: none;
+}
+.bp-hero-slide {
+    flex: 0 0 100%;
+    padding: 0;
+    margin: 0;
+    scroll-snap-align: center;
+    position: relative;
+    display: block;
+    aspect-ratio: 1920 / 735;
+}
+.bp-hero-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Global Slider Controls (Hero) */
+.bp-slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #fff;
+    border: 1px solid #ddd;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s;
+    color: #555;
+    padding: 0;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.bp-slider-btn:hover,
+.bp-slider-btn:focus,
+.bp-slider-btn:active {
+    background: #fff; /* Prevent WP background shift */
+    border-color: #bbbbbb; 
+    color: #333;
+    outline: none;
+    box-shadow: none;
+}
+.bp-prev-btn { left: 20px; }
+.bp-next-btn { right: 20px; }
+
+/* Product Section (Shared styles moved to common-woocommerce.css) */
+
+/* Red Banner */
+.bp-red-banner {
+    background-color: #FF2A61;
+    padding: 40px 0;
+    color: #fff;
+    margin-bottom: 40px;
+}
+.bp-banner-grid {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 30px;
+}
+.bp-banner-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+}
+.bp-banner-item:not(:last-child) {
+    border-right: 1px solid rgba(255,255,255,0.2);
+    padding-right: 30px;
+}
+.bp-banner-icon {
+    flex-shrink: 0;
+    color: #fff;
+}
+.bp-banner-text h4 {
+    margin: 0 0 5px;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.bp-banner-text p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+    .bp-red-banner {
+        padding: 16px 0;
+        margin-bottom: 20px;
+    }
+    .bp-banner-grid {
+        gap: 0;
+    }
+    .bp-banner-item {
+        flex-direction: column;
+        align-items: flex-start;
+        flex: 1;
+        gap: 6px;
+        padding-right: 12px;
+        padding-left: 12px;
+    }
+    .bp-banner-item:first-child {
+        padding-left: 0;
+    }
+    .bp-banner-item:not(:last-child) {
+        border-right: 1px solid rgba(255,255,255,0.3);
+        padding-right: 12px;
+    }
+    .bp-banner-item:last-child {
+        padding-right: 0;
+    }
+    .bp-banner-icon svg {
+        width: 28px;
+        height: 28px;
+    }
+    .bp-banner-text h4 {
+        font-size: 11px;
+        margin: 0 0 3px;
+    }
+    .bp-banner-text p {
+        font-size: 10px;
+        line-height: 1.3;
+    }
+}

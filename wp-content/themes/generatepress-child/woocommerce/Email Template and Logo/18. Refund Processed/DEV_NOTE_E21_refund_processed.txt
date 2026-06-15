@@ -1,0 +1,166 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E21 Refund Processed — Final Email in the System
+====================================================================
+
+TRIGGER
+-------
+Hook   : woocommerce_order_refunded
+Source : Fires when admin processes a refund via the WooCommerce
+         order panel (Refund button → enter amount → submit)
+
+  add_action( 'woocommerce_order_refunded',
+  function( $order_id, $refund_id ) {
+      $order  = wc_get_order( $order_id );
+      $refund = wc_get_order( $refund_id );
+      if ( ! $order || ! $refund ) return;
+
+      // Do not send for partial refunds unless you want to
+      // For full refund only: check total matches order total
+      $refund_amount = abs( $refund->get_total() );
+      $order_total   = $order->get_total();
+
+      // Send for any refund (partial or full)
+      // Remove this check if you only want full refund emails
+      if ( $refund_amount <= 0 ) return;
+
+      // Do not resend if already sent for this order
+      // (partial refunds may fire this hook multiple times)
+      if ( get_post_meta( $order_id, '_e21_sent', true ) ) return;
+
+      babypasa_send_e21( $order_id, $refund_id );
+
+      update_post_meta( $order_id, '_e21_sent', '1' );
+  }, 10, 2 );
+
+====================================================================
+SEND FUNCTION
+====================================================================
+
+  function babypasa_send_e21( $order_id, $refund_id ) {
+      $order  = wc_get_order( $order_id );
+      $refund = wc_get_order( $refund_id );
+      if ( ! $order || ! $refund ) return;
+
+      $first_name    = $order->get_billing_first_name();
+      $order_number  = $order->get_order_number();
+      $payment_slug  = $order->get_payment_method();
+
+      // Refund amount — use actual refund object total
+      // abs() because WooCommerce stores refunds as negative
+      $refund_amount = wc_price( abs( $refund->get_total() ) );
+
+      $refund_method = babypasa_get_refund_label( $payment_slug );
+      $refund_note   = babypasa_get_refund_note( $payment_slug );
+      $shop_url      = home_url( '/' );
+
+      babypasa_send_email(
+          $order->get_billing_email(),
+          'Your refund for order #' . $order_number
+              . ' has been processed ✅',
+          'e21-refund-processed',
+          compact(
+              'first_name', 'order_number',
+              'refund_amount', 'refund_method',
+              'refund_note', 'shop_url'
+          )
+      );
+  }
+
+====================================================================
+REFUND AMOUNT — USE REFUND OBJECT NOT ORDER TOTAL
+====================================================================
+Always use the refund object total, not the order total:
+
+  $refund_amount = abs( $refund->get_total() );
+
+This matters for partial refunds — if you refund Rs. 850
+on a Rs. 4,100 order, the email should show Rs. 850, not 4,100.
+
+wc_get_order( $refund_id ) returns a WC_Order_Refund object.
+Its get_total() returns a negative value — abs() corrects this.
+
+====================================================================
+PARTIAL vs FULL REFUNDS
+====================================================================
+The hook fires for both. Default behaviour above:
+  - Sends E21 once per order (first refund only)
+  - _e21_sent flag prevents duplicate emails
+
+If you want E21 for EVERY partial refund separately:
+  - Remove the _e21_sent flag
+  - Use _e21_sent_{$refund_id} instead for per-refund tracking
+
+For babypasa.com current volume, once per order is correct.
+
+====================================================================
+REUSE REFUND HELPERS FROM E15
+====================================================================
+  $refund_method = babypasa_get_refund_label( $payment_slug );
+  $refund_note   = babypasa_get_refund_note( $payment_slug );
+
+Currently: ConnectIPS → "Bank Transfer"
+Note: "The refund will be credited to the bank account linked
+       to your ConnectIPS transaction."
+
+====================================================================
+REFUND AMOUNT DISPLAY
+====================================================================
+The refund amount is displayed at font-size:18px in the email —
+larger than all other text in the refund table. This is
+intentional — it's the one number the customer needs to see.
+
+====================================================================
+SHOP AGAIN CTA
+====================================================================
+"Shop Again" links to home_url('/') — the babypasa.com homepage.
+This is the last touchpoint in the entire 21-email journey.
+Even a return/refund experience ends with an invitation back.
+
+====================================================================
+SUBJECT LINE
+====================================================================
+  Your refund for order #{{order_number}} has been processed ✅
+
+====================================================================
+PLACEHOLDERS USED
+====================================================================
+  {{first_name}}        $order->get_billing_first_name()
+  {{order_number}}      $order->get_order_number()
+  {{refund_amount}}     wc_price( abs( $refund->get_total() ) )
+  {{refund_method}}     babypasa_get_refund_label( $payment_slug )
+  {{refund_note}}       babypasa_get_refund_note( $payment_slug )
+  {{shop_url}}          home_url( '/' )
+
+====================================================================
+NEXT EMAIL IN SEQUENCE
+====================================================================
+None — E21 is the final email in the BabyPasa transactional
+email system. No further emails are triggered.
+
+====================================================================
+FULL EMAIL SEQUENCE SUMMARY
+====================================================================
+E01  Account Created          → woocommerce_new_customer_data
+E02  Password Reset           → woocommerce_reset_password_notification
+E03  Order Confirmation       → woocommerce_checkout_order_created
+E04  Payment Failed           → woocommerce_order_status_failed
+E05  Abandoned Cart           → babypasa_send_abandoned_cart_email (cron)
+E06  Order Picked Up          → Upaya webhook: Pickup Process
+E07  In Transit               → Upaya webhook: Dispatched To (first only)
+E10  In Transit Too Long      → babypasa_daily_transit_check (cron, 3d)
+E11  Out for Delivery         → Upaya webhook: Out for Delivery
+E12  Delivered                → Upaya webhook: Delivered
+E13  Purchase Review          → babypasa_send_review_email (3d after E12)
+E14  Replenishment            → babypasa_send_replenishment_email (Xd)
+E15  Order Cancelled          → woocommerce_order_status_cancelled
+E16  Failed Delivery          → Upaya webhook: Follow Up for Return
+E17  RTO Initiated            → Upaya webhook: Return Process
+E18  Return Requested         → babypasa_return_requested (customer action)
+E19  Return Approved          → woocommerce_order_action_babypasa_approve_return
+E20  RTO Complete             → Upaya webhook: RTO Complete
+E21  Refund Processed         → woocommerce_order_refunded
+
+====================================================================
+END OF NOTE — END OF BABYPASA EMAIL SYSTEM
+====================================================================

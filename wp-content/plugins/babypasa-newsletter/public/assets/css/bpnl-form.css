@@ -1,0 +1,85 @@
+/* Babypasa Newsletter — front-end CSS
+ *
+ * Form input/button styles live in the theme's footer-style.css
+ * (.bp-newsletter-form, .bp-newsletter-form input, .bp-newsletter-form button).
+ * This file only owns the toast notification styles.
+ */
+
+/* ─── Toast notification container ──────────────────────────────────────── */
+
+.bp-notification-container {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+	z-index: 999999;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	pointer-events: none;
+}
+
+/* ─── Individual toast ───────────────────────────────────────────────────── */
+
+.bp-notification {
+	position: relative;
+	width: 320px;
+	background: #fff;
+	border-radius: 6px;
+	border-left: 4px solid #ff4b4b;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+	padding: 14px 36px 14px 16px;
+	pointer-events: auto;
+
+	/* Resting / hidden state */
+	transform: translateX(120%);
+	opacity: 0;
+	transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+	            opacity   0.3s ease;
+}
+
+.bp-notification.bp-show {
+	transform: translateX(0);
+	opacity: 1;
+}
+
+.bp-notification.bp-hiding {
+	transform: translateX(120%);
+	opacity: 0;
+	transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* ─── Toast internals ────────────────────────────────────────────────────── */
+
+.bp-notification-close {
+	position: absolute;
+	top: 8px;
+	right: 10px;
+	background: none;
+	border: none;
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+	color: #888;
+	padding: 0;
+}
+
+.bp-notification-close:hover {
+	color: #333;
+}
+
+.bp-notification-title {
+	font-weight: 700;
+	font-size: 14px;
+	margin-bottom: 4px;
+	color: #1a1a1a;
+}
+
+.bp-notification-message {
+	font-size: 13px;
+	color: #444;
+	line-height: 1.5;
+}
+
+.bp-notification-message p {
+	margin: 0;
+}

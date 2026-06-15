@@ -1,0 +1,207 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E05 Abandoned Cart
+====================================================================
+
+OVERVIEW
+--------
+WooCommerce does not natively detect abandoned carts. You need
+either a plugin or a custom implementation. This note covers both.
+
+====================================================================
+OPTION A — USE A PLUGIN (RECOMMENDED, LOWEST ENGINEERING COST)
+====================================================================
+Install: "Abandoned Cart Lite for WooCommerce" (free, 30k+ installs)
+or "WooCommerce Cart Abandonment Recovery" by CartFlows (free).
+
+These plugins handle:
+  - Cart session tracking for both guests and logged-in users
+  - Abandonment detection (configurable delay)
+  - Unique cart restore URL generation
+  - Do-not-send if order completed
+  - Email template hooks
+
+With a plugin, your developer only needs to:
+  1. Install and configure the delay (set to 1–2 hours)
+  2. Hook into the plugin's email template filter to inject the
+     BabyPasa E05 HTML instead of the plugin's default template
+  3. Map {{cart_items}}, {{cart_total}}, {{cart_url}} from the
+     plugin's available variables
+
+====================================================================
+OPTION B — CUSTOM IMPLEMENTATION (LOGGED-IN USERS ONLY)
+====================================================================
+Covers customers who have an account. Guests are not trackable
+without a plugin (no email address available until checkout).
+
+STEP 1 — RECORD CART ACTIVITY
+------------------------------
+Hook into cart updates to record timestamp and user:
+
+  add_action( 'woocommerce_cart_updated', function() {
+      if ( ! is_user_logged_in() ) return;
+      if ( WC()->cart->is_empty() ) return;
+
+      $user_id = get_current_user_id();
+
+      // Store cart snapshot and timestamp
+      update_user_meta( $user_id, '_babypasa_cart_updated',
+          time() );
+      update_user_meta( $user_id, '_babypasa_cart_abandoned',
+          '0' ); // reset flag on any cart activity
+
+      // Cancel any existing scheduled send for this user
+      wp_clear_scheduled_hook(
+          'babypasa_send_abandoned_cart_email', [ $user_id ] );
+
+      // Schedule new send 90 minutes from now
+      wp_schedule_single_event(
+          time() + ( 90 * MINUTE_IN_SECONDS ),
+          'babypasa_send_abandoned_cart_email',
+          [ $user_id ]
+      );
+  });
+
+STEP 2 — CANCEL IF THEY COMPLETE THE ORDER
+-------------------------------------------
+
+  add_action( 'woocommerce_checkout_order_created',
+  function( $order ) {
+      $user_id = $order->get_customer_id();
+      if ( ! $user_id ) return;
+
+      // Cancel any pending abandoned cart email
+      wp_clear_scheduled_hook(
+          'babypasa_send_abandoned_cart_email', [ $user_id ] );
+
+      update_user_meta( $user_id, '_babypasa_cart_abandoned', '0' );
+  });
+
+STEP 3 — SEND HANDLER
+----------------------
+
+  add_action( 'babypasa_send_abandoned_cart_email',
+  function( $user_id ) {
+      $user = get_user_by( 'id', $user_id );
+      if ( ! $user ) return;
+
+      // Do not resend check
+      if ( get_user_meta( $user_id, '_babypasa_e05_sent', true ) ) return;
+
+      // Get persistent cart
+      $cart_data = get_user_meta(
+          $user_id,
+          '_woocommerce_persistent_cart_' . get_current_blog_id(),
+          true
+      );
+      if ( empty( $cart_data['cart'] ) ) return;
+
+      // Build cart items array
+      $cart_items = [];
+      $cart_total = 0;
+
+      foreach ( $cart_data['cart'] as $cart_key => $cart_item ) {
+          $product = wc_get_product( $cart_item['product_id'] );
+          if ( ! $product ) continue;
+
+          $line_total   = $product->get_price() * $cart_item['quantity'];
+          $cart_total  += $line_total;
+          $cart_items[] = [
+              'name'       => $product->get_name(),
+              'price'      => wc_price( $product->get_price() ),
+              'qty'        => $cart_item['quantity'],
+              'line_total' => wc_price( $line_total ),
+          ];
+      }
+
+      if ( empty( $cart_items ) ) return;
+
+      $first_name = get_user_meta( $user_id, 'first_name', true )
+                    ?: $user->display_name;
+
+      // Cart URL — WooCommerce persistent cart restores on visit
+      $cart_url = wc_get_cart_url();
+
+      babypasa_send_email(
+          $user->user_email,
+          'You left something behind, ' . $first_name . '! 🛒',
+          'e05-abandoned-cart',
+          compact( 'first_name', 'cart_items', 'cart_total', 'cart_url' )
+      );
+
+      update_user_meta( $user_id, '_babypasa_e05_sent', '1' );
+
+      // Reset after 24 hours so future abandoned carts can send again
+      wp_schedule_single_event(
+          time() + DAY_IN_SECONDS,
+          'babypasa_reset_e05_flag',
+          [ $user_id ]
+      );
+  });
+
+  add_action( 'babypasa_reset_e05_flag', function( $user_id ) {
+      delete_user_meta( $user_id, '_babypasa_e05_sent' );
+  });
+
+====================================================================
+CART ITEMS TABLE IN TEMPLATE
+====================================================================
+The email shows three columns per product row:
+  - Product name + unit price (left)
+  - Quantity × (right, pink)
+  - Line total (right, dark)
+
+PHP to generate rows:
+
+  foreach ( $cart_items as $item ) {
+      // Output one <tr> block per item
+      // Use $item['name'], $item['price'],
+      //     $item['qty'], $item['line_total']
+  }
+
+  // Cart total row uses wc_price( $cart_total )
+
+CART URL
+--------
+For logged-in users, WooCommerce automatically restores their
+persistent cart when they visit /cart/. Link the CTA directly to:
+
+  wc_get_cart_url()  →  https://babypasa.com/cart/
+
+For plugin-based implementation, use the plugin's unique restore
+URL (includes a cart token that works for guests too).
+
+====================================================================
+TIMING RECOMMENDATION
+====================================================================
+  Delay       : 90 minutes after last cart update
+  Max send    : Once per 24 hours per user (flag resets after 24h)
+  Do not send : If cart is empty when handler fires
+  Do not send : If a new order was placed (wp_clear_scheduled_hook)
+
+====================================================================
+SUBJECT LINE
+====================================================================
+  You left something behind, {{first_name}}! 🛒
+
+====================================================================
+PLACEHOLDERS USED
+====================================================================
+  {{first_name}}      User first name or display name
+  {{product_name}}    Loop: $item['name']
+  {{unit_price}}      Loop: $item['price']
+  {{product_qty}}     Loop: $item['qty']
+  {{line_total}}      Loop: $item['line_total']
+  {{cart_total}}      wc_price( $cart_total )
+  {{cart_url}}        wc_get_cart_url()
+
+====================================================================
+NEXT EMAIL IN SEQUENCE
+====================================================================
+None — E05 does not trigger any follow-up.
+If customer completes order after receiving E05, E03 Order
+Confirmation fires normally via WooCommerce hook.
+
+====================================================================
+END OF NOTE
+====================================================================

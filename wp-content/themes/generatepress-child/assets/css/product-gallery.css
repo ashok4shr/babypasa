@@ -1,0 +1,418 @@
+/* ==========================================================================
+   BabyPasa — Custom Single-Product Image Slider
+   Scoped under .bp-gallery (lives inside .bp-product-gallery-column).
+   No jQuery, no flexslider, no photoswipe — see assets/js/product-gallery.js.
+   Zoom is opt-in via the zoom button → full-screen viewer (no hover zoom).
+   ========================================================================== */
+
+.bp-gallery {
+	--bp-gallery-radius: 14px;
+	--bp-gallery-brand: #FF2A61;
+	position: relative;
+	width: 100%;
+	margin: 0;
+	float: none;
+	user-select: none;
+}
+
+/* The featured-image column hosts the absolutely-positioned sale badge. */
+.bp-product-gallery-column {
+	position: relative;
+}
+
+.bp-product-gallery-column .onsale {
+	position: absolute;
+	top: 14px;
+	left: 14px;
+	z-index: 6;
+	margin: 0;
+	background: var(--bp-gallery-brand);
+	color: #fff;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	padding: 6px 12px;
+	border-radius: 999px;
+	line-height: 1;
+	box-shadow: 0 4px 12px rgba(255, 42, 97, 0.35);
+	min-height: 0;
+	min-width: 0;
+}
+
+/* ── Stage (viewport + controls) ─────────────────────────────────────────── */
+.bp-gallery__stage {
+	position: relative;
+	border-radius: var(--bp-gallery-radius);
+	background: #fff;
+	outline: none;
+}
+
+.bp-gallery__stage:focus-visible {
+	box-shadow: 0 0 0 3px rgba(255, 42, 97, 0.35);
+}
+
+.bp-gallery__viewport {
+	position: relative;
+	overflow: hidden;
+	border-radius: var(--bp-gallery-radius);
+	border: 1px solid #f0f0f0;
+	/* Reserve height up-front to eliminate layout shift before JS/images load. */
+	aspect-ratio: 1 / 1;
+	background: #fff;
+	touch-action: pan-y;
+}
+
+.bp-gallery__track {
+	display: flex;
+	height: 100%;
+	will-change: transform;
+	transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* While the user is dragging we kill the transition for 1:1 finger tracking. */
+.bp-gallery.is-dragging .bp-gallery__track {
+	transition: none;
+}
+
+.bp-gallery__slide {
+	position: relative;
+	flex: 0 0 100%;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	cursor: zoom-in;
+}
+
+/* Normalise whatever WooCommerce / plugins inject inside each slide. */
+.bp-gallery__slide .woocommerce-product-gallery__image,
+.bp-gallery__slide > a,
+.bp-gallery__slide > div {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.bp-gallery__slide img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	display: block;
+	pointer-events: none; /* clicks fall through to the slide (opens full-screen) */
+	-webkit-user-drag: none;
+}
+
+/* Native gallery anchors must not navigate to the raw image. */
+.bp-gallery__slide a {
+	pointer-events: none;
+}
+
+/* ── Navigation arrows ───────────────────────────────────────────────────── */
+.bp-gallery__nav {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 5;
+	width: 46px;
+	height: 46px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(255, 255, 255, 0.94);
+	color: #222;
+	border: 1px solid #eee;
+	border-radius: 50%;
+	cursor: pointer;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+	opacity: 0;
+	transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+	padding: 0;
+}
+
+.bp-gallery__stage:hover .bp-gallery__nav,
+.bp-gallery__stage:focus-within .bp-gallery__nav {
+	opacity: 1;
+}
+
+/* Intended states only — override GeneratePress's default grey button hover/focus. */
+.bp-gallery__nav:hover {
+	background: var(--bp-gallery-brand) !important;
+	color: #fff !important;
+	border-color: var(--bp-gallery-brand);
+}
+
+.bp-gallery__nav:focus,
+.bp-gallery__nav:active {
+	background: var(--bp-gallery-brand) !important;
+	color: #fff !important;
+	outline: none;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
+.bp-gallery__nav:active { transform: translateY(-50%) scale(0.92); }
+
+.bp-gallery__nav--prev { left: 12px; }
+.bp-gallery__nav--next { right: 12px; }
+
+.bp-gallery__nav[disabled] {
+	opacity: 0 !important;
+	pointer-events: none;
+}
+
+/* ── Zoom button ─────────────────────────────────────────────────────────── */
+.bp-gallery__zoom-btn {
+	position: absolute;
+	bottom: 14px;
+	right: 14px;
+	z-index: 5;
+	width: 42px;
+	height: 42px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.55) !important;
+	color: #fff !important;
+	border: none;
+	border-radius: 50%;
+	cursor: pointer;
+	padding: 0;
+	transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.bp-gallery__zoom-btn:hover,
+.bp-gallery__zoom-btn:focus,
+.bp-gallery__zoom-btn:active {
+	background: var(--bp-gallery-brand) !important;
+	color: #fff !important;
+	outline: none;
+	box-shadow: none;
+}
+
+.bp-gallery__zoom-btn:hover { transform: scale(1.08); }
+
+/* ── Slide counter (replaces thumbnail dots) ─────────────────────────────── */
+.bp-gallery__counter {
+	position: absolute;
+	bottom: 14px;
+	left: 14px;
+	z-index: 5;
+	background: rgba(0, 0, 0, 0.55);
+	color: #fff;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	padding: 6px 12px;
+	border-radius: 999px;
+	pointer-events: none;
+}
+
+/* ── Full-screen zoom viewer ─────────────────────────────────────────────── */
+.bp-gallery-fs {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	background: rgba(15, 15, 18, 0.96);
+}
+
+.bp-gallery-fs.is-open { display: flex; }
+
+.bp-gallery-fs__stage {
+	position: relative;
+	width: 92vw;
+	height: 88vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+}
+
+.bp-gallery-fs__img {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+	cursor: zoom-in;
+	transition: transform 0.25s ease;
+	touch-action: none;
+	-webkit-user-drag: none;
+}
+
+.bp-gallery-fs__img.is-zoomed {
+	cursor: grab;
+	transition: none;
+}
+
+.bp-gallery-fs__close {
+	position: absolute;
+	top: 18px;
+	right: 22px;
+	z-index: 2;
+	width: 46px;
+	height: 46px;
+	font-size: 30px;
+	line-height: 1;
+	color: #fff !important;
+	background: rgba(255, 255, 255, 0.12) !important;
+	border: none;
+	border-radius: 50%;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background 0.2s ease;
+}
+
+.bp-gallery-fs__close:hover,
+.bp-gallery-fs__close:focus,
+.bp-gallery-fs__close:active {
+	background: var(--bp-gallery-brand) !important;
+	color: #fff !important;
+	outline: none;
+}
+
+.bp-gallery-fs__nav {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 2;
+	width: 54px;
+	height: 54px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff !important;
+	background: rgba(255, 255, 255, 0.12) !important;
+	border: none;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: background 0.2s ease;
+}
+
+.bp-gallery-fs__nav:hover,
+.bp-gallery-fs__nav:focus,
+.bp-gallery-fs__nav:active {
+	background: var(--bp-gallery-brand) !important;
+	color: #fff !important;
+	outline: none;
+}
+
+.bp-gallery-fs__nav--prev { left: 22px; }
+.bp-gallery-fs__nav--next { right: 22px; }
+.bp-gallery-fs__nav[disabled] { opacity: 0.3; pointer-events: none; }
+
+.bp-gallery-fs__counter {
+	position: absolute;
+	bottom: 22px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 2;
+	color: #fff;
+	background: rgba(255, 255, 255, 0.12);
+	font-size: 14px;
+	font-weight: 600;
+	padding: 7px 16px;
+	border-radius: 999px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 991px) {
+	.bp-gallery__nav { opacity: 1; } /* touch devices: keep arrows visible */
+}
+
+@media (max-width: 600px) {
+	.bp-gallery__nav { width: 40px; height: 40px; }
+	.bp-gallery__zoom-btn { width: 38px; height: 38px; }
+	.bp-gallery-fs__stage { width: 96vw; height: 84vh; }
+	.bp-gallery-fs__nav { width: 44px; height: 44px; }
+	.bp-gallery-fs__nav--prev { left: 10px; }
+	.bp-gallery-fs__nav--next { right: 10px; }
+}
+
+/* Respect reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+	.bp-gallery__track,
+	.bp-gallery__nav,
+	.bp-gallery__thumb,
+	.bp-gallery-fs__img {
+		transition: none !important;
+	}
+}
+
+/* ── Thumbnail strip ─────────────────────────────────────────────────────────
+   Single horizontal, scroll-only row below the stage. Rendered by
+   product-image.php only when the product has 2+ images; wired to the slider
+   in product-gallery.js (click → goTo, active thumb synced from goTo).
+   ========================================================================== */
+.bp-gallery__thumbs {
+	position: relative; /* makes this the offsetParent for thumb scroll math */
+	display: flex;
+	flex-wrap: nowrap;
+	gap: 10px;
+	margin-top: 12px;
+	padding: 2px;
+	overflow-x: auto;
+	overflow-y: hidden;
+	scroll-behavior: smooth;
+	-webkit-overflow-scrolling: touch;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.bp-gallery__thumbs::-webkit-scrollbar {
+	height: 6px;
+}
+
+.bp-gallery__thumbs::-webkit-scrollbar-thumb {
+	background: rgba(0, 0, 0, 0.2);
+	border-radius: 999px;
+}
+
+.bp-gallery__thumb {
+	flex: 0 0 auto;
+	width: 64px;
+	height: 64px;
+	padding: 0;
+	margin: 0;
+	border: 2px solid transparent;
+	border-radius: calc(var(--bp-gallery-radius) - 6px);
+	background: #fff;
+	cursor: pointer;
+	overflow: hidden;
+	opacity: 0.62;
+	transition: opacity 0.2s ease, border-color 0.2s ease;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.bp-gallery__thumb:hover,
+.bp-gallery__thumb:focus-visible {
+	opacity: 1;
+	outline: none;
+}
+
+.bp-gallery__thumb.is-active {
+	opacity: 1;
+	border-color: var(--bp-gallery-brand);
+}
+
+.bp-gallery__thumb-img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+@media (max-width: 600px) {
+	.bp-gallery__thumb {
+		width: 54px;
+		height: 54px;
+	}
+}

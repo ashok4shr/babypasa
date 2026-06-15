@@ -1,0 +1,61 @@
+/* Price Drop Notification Styles */
+.bp-price-drop-notify {
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bp-notify-link {
+    color: #FF2A61;
+    font-weight: 600;
+    text-decoration: underline;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.bp-notify-link:hover {
+    color: #d81b4d;
+}
+
+.bp-notify-link.bp-notified {
+    color: #28a745; /* Success green */
+    text-decoration: none;
+    cursor: default;
+}
+
+.bp-notify-link.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.bp-show-alerts-link {
+    font-size: 13px;
+    color: #666;
+    text-decoration: underline;
+    margin-left: 10px;
+}
+
+.bp-show-alerts-link:hover {
+    color: #333;
+}
+
+/* My Account - Price Drop Alerts Table */
+.bp-remove-alert-btn {
+    background-color: #f1f1f1 !important;
+    color: #333 !important;
+    border: 1px solid #ddd !important;
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    border-radius: 3px !important;
+}
+
+.bp-remove-alert-btn:hover {
+    background-color: #e2e2e2 !important;
+}
+
+.bp-remove-alert-btn.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}

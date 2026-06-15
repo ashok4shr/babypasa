@@ -1,0 +1,255 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E04 Payment Failed — Dynamic Payment Tips
+====================================================================
+
+TRIGGER
+-------
+Hook   : woocommerce_order_status_failed
+Source : Fires when an order status changes to "failed" — typically
+         after a gateway timeout, insufficient balance, or user
+         abandoning the payment page
+
+  add_action( 'woocommerce_order_status_failed',
+  function( $order_id ) {
+      // Do not resend check
+      if ( get_post_meta( $order_id, '_e04_sent', true ) ) return;
+
+      $order = wc_get_order( $order_id );
+      if ( ! $order ) return;
+
+      $first_name   = $order->get_billing_first_name();
+      $order_number = $order->get_order_number();
+      $order_total  = wc_price( $order->get_total() );
+      $retry_url    = $order->get_checkout_payment_url();
+      $payment_slug = $order->get_payment_method();
+      $tips_html    = babypasa_get_payment_tips( $payment_slug );
+
+      babypasa_send_email(
+          $order->get_billing_email(),
+          'Your payment for order #' . $order_number . ' didn\'t go through — let\'s fix it',
+          'e04-payment-failed',
+          compact(
+              'first_name', 'order_number', 'order_total',
+              'retry_url', 'tips_html'
+          )
+      );
+
+      update_post_meta( $order_id, '_e04_sent', '1' );
+  });
+
+====================================================================
+DYNAMIC PAYMENT TIPS SYSTEM
+====================================================================
+One function maps every gateway slug to its own troubleshoot tips.
+Adding a new gateway = one new array entry. Zero template changes.
+
+  function babypasa_get_payment_tips( $payment_slug ) {
+      $gateways = [
+
+          // ── ConnectIPS (current) ──────────────────────────────
+          'connectips' => [
+              'label' => 'Having trouble with ConnectIPS?',
+              'icon'  => 'building-bank',
+              'tips'  => [
+                  'Make sure your bank account is linked to ConnectIPS
+                   and has sufficient balance.',
+                  'Check your daily transaction limit with your bank
+                   — it may need to be increased.',
+                  'Try clearing your browser cache or use a different
+                   browser and retry.',
+                  'Still not working? Contact us and we\'ll help you
+                   complete your order.',
+              ],
+          ],
+
+          // ── eSewa (add when onboarded) ────────────────────────
+          'esewa' => [
+              'label' => 'Having trouble with eSewa?',
+              'icon'  => 'wallet',
+              'tips'  => [
+                  'Check your eSewa wallet balance and top up if needed.',
+                  'Make sure you\'re entering the correct eSewa PIN.',
+                  'Try logging out of eSewa and back in, then retry.',
+                  'Still not working? Contact us and we\'ll help you
+                   complete your order.',
+              ],
+          ],
+
+          // ── Khalti (add when onboarded) ───────────────────────
+          'khalti' => [
+              'label' => 'Having trouble with Khalti?',
+              'icon'  => 'wallet',
+              'tips'  => [
+                  'Check your Khalti wallet balance and top up if needed.',
+                  'Ensure your Khalti account is verified (KYC complete).',
+                  'Try the Khalti app directly if the browser flow fails.',
+                  'Still not working? Contact us and we\'ll help you
+                   complete your order.',
+              ],
+          ],
+
+          // ── Bank Transfer fallback ────────────────────────────
+          'bacs' => [
+              'label' => 'Completing your bank transfer',
+              'icon'  => 'building-bank',
+              'tips'  => [
+                  'Use the account details provided to transfer the
+                   exact order amount.',
+                  'Include your order number as the payment reference.',
+                  'Transfers may take 1–2 business days to reflect.',
+                  'Contact us once transferred and we\'ll confirm
+                   your order.',
+              ],
+          ],
+
+          // ── Generic fallback (unknown gateway) ────────────────
+          'default' => [
+              'label' => 'Having trouble with your payment?',
+              'icon'  => 'credit-card',
+              'tips'  => [
+                  'Check your payment method has sufficient balance.',
+                  'Try a different browser or clear your cache.',
+                  'Use a different payment method if available.',
+                  'Contact us and we\'ll help you complete your order.',
+              ],
+          ],
+      ];
+
+      // Use specific gateway tips if available, else fall back
+      $config = $gateways[ $payment_slug ]
+                ?? $gateways['default'];
+
+      // Build HTML for the tips block
+      return babypasa_render_tips_html( $config );
+  }
+
+====================================================================
+TIPS HTML RENDERER
+====================================================================
+Generates the pink troubleshoot box HTML from the config array.
+Output is dropped into {{tips_html}} in the email template.
+
+  function babypasa_render_tips_html( $config ) {
+      $label = esc_html( $config['label'] );
+      $icon  = esc_html( $config['icon'] );
+      $rows  = '';
+
+      foreach ( $config['tips'] as $i => $tip ) {
+          $num  = $i + 1;
+          $text = esc_html( $tip );
+          $rows .= "
+          <tr>
+            <td style=\"padding:5px 0;vertical-align:top;width:24px;\">
+              <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\"
+                     role=\"presentation\">
+                <tr>
+                  <td style=\"width:18px;height:18px;background:#ec4899;
+                              border-radius:9px;text-align:center;
+                              vertical-align:middle;\">
+                    <span style=\"color:#ffffff;font-size:10px;
+                                  font-weight:700;font-family:Arial,
+                                  Helvetica,sans-serif;line-height:1;\">
+                      {$num}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+            <td style=\"padding:5px 0 5px 10px;font-size:12px;
+                        color:#be185d;line-height:1.5;
+                        font-family:Arial,Helvetica,sans-serif;\">
+              {$text}
+            </td>
+          </tr>";
+      }
+
+      return "
+      <div style=\"background:#fce7f3;border-radius:8px;padding:16px;
+                  margin-bottom:24px;border:1px solid #fbcfe8;\">
+        <div style=\"display:flex;align-items:center;gap:8px;
+                    margin-bottom:12px;\">
+          <div style=\"width:28px;height:28px;background:#ec4899;
+                      border-radius:6px;flex-shrink:0;text-align:center;
+                      vertical-align:middle;padding-top:5px;\">
+            <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\"
+                 style=\"display:inline-block;\">
+              <!-- Icon renders via inline SVG in template -->
+            </svg>
+          </div>
+          <p style=\"margin:0;font-size:12px;font-weight:700;
+                     color:#9d174d;font-family:Arial,Helvetica,sans-serif;\">
+            {$label}
+          </p>
+        </div>
+        <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\"
+               width=\"100%\" role=\"presentation\">
+          {$rows}
+        </table>
+      </div>";
+  }
+
+NOTE: For cleaner separation, consider storing tips as a JSON config
+file or WP options page rather than hardcoded PHP. That way the store
+owner can update tip copy without a code deployment.
+
+====================================================================
+ORDER ITEMS IN EMAIL
+====================================================================
+Loop through order items to build the product rows:
+
+  foreach ( $order->get_items() as $item ) {
+      $name = $item->get_name();
+      $qty  = $item->get_quantity();
+      // Output one <tr> per item in the order summary table
+  }
+
+RETRY URL
+---------
+WooCommerce provides the exact payment retry URL:
+
+  $retry_url = $order->get_checkout_payment_url();
+  // Sends customer directly to payment step — cart pre-filled
+
+====================================================================
+SEND TIMING
+====================================================================
+Send immediately on order_status_failed. Do not delay — customer is
+likely still at their device when payment fails. A 5-minute delay
+loses the moment.
+
+DEDUPLICATION
+-------------
+WooCommerce can fire woocommerce_order_status_failed multiple times
+for the same order (e.g. customer retries and fails again).
+The _e04_sent meta flag prevents repeat emails. If you want to allow
+one retry reminder (e.g. 30 min later for a second failure), reset
+the flag after a delay rather than permanently.
+
+SUBJECT LINE
+------------
+Your payment for order #{{order_number}} didn't go through — let's fix it
+
+(No "FAILED" in subject — alarming language increases unsubscribes.)
+
+PLACEHOLDERS USED
+-----------------
+{{first_name}}      $order->get_billing_first_name()
+{{order_number}}    $order->get_order_number()
+{{order_total}}     wc_price( $order->get_total() )
+{{product_name}}    Loop: $item->get_name()
+{{product_qty}}     Loop: $item->get_quantity()
+{{retry_url}}       $order->get_checkout_payment_url()
+{{tips_html}}       babypasa_get_payment_tips( $payment_slug )
+
+TO ADD A NEW PAYMENT GATEWAY LATER
+-----------------------------------
+1. Open babypasa_get_payment_tips()
+2. Add a new entry to the $gateways array
+3. Key = the WooCommerce gateway slug (check Settings → Payments)
+4. Provide label, icon, and 4 tips
+5. Done — template requires zero changes
+
+====================================================================
+END OF NOTE
+====================================================================

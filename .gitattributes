@@ -1,0 +1,27 @@
+# Normalize line endings: avoid CRLF/LF churn between Windows (local) and Linux (prod)
+* text=auto
+
+# Explicitly treat source as text
+*.php  text
+*.js   text
+*.css  text
+*.html text
+*.json text
+*.md   text
+*.txt  text
+*.svg  text
+*.xml  text
+
+# Treat binaries as binary (no EOL conversion)
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+*.eot  binary
+*.mp4  binary
+*.pdf  binary

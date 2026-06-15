@@ -1,0 +1,500 @@
+/* Active State Styling (Overrides theme's common-woocommerce.css backgrounds) */
+.bp-wishlist-btn.in-wishlist {
+    background-color: #d81b4d !important; 
+    /* Filled heart icon for active state */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E") !important;
+    background-size: 18px !important;
+}
+
+.bp-compare-btn.in-compare {
+    background-color: #d81b4d !important;
+}
+
+/* Loading State */
+.bp-action-btn.bp-loading {
+    background-image: none !important;
+    position: relative;
+    pointer-events: none;
+}
+
+.bp-action-btn.bp-loading::after {
+    content: '';
+    position: absolute;
+    top: calc(50% - 8px);
+    left: calc(50% - 8px);
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: bp-spin 1s linear infinite;
+    display: block;
+}
+
+@keyframes bp-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Compare Table Styles */
+#bp-compare-table-container {
+    margin: 40px 0;
+    overflow-x: auto;
+}
+
+.bp-compare-table-wrapper {
+    min-width: 600px;
+}
+
+.bp-compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border: 1px solid #e1e1e1;
+    text-align: left;
+}
+
+.bp-compare-table th, .bp-compare-table td {
+    padding: 15px;
+    border: 1px solid #e1e1e1;
+    vertical-align: top;
+}
+
+.bp-compare-feature-column {
+    width: 20%;
+    background-color: #f9f9f9;
+    font-weight: 600;
+}
+
+.bp-compare-product-column {
+    width: 26.6%; /* 80% / 3 */
+    text-align: center;
+}
+
+.bp-compare-product-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    margin-bottom: 10px;
+}
+
+.bp-compare-product-link img {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 15px;
+}
+
+.bp-compare-title {
+    font-size: 16px;
+    margin: 0 0 10px;
+}
+
+.bp-compare-price {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.bp-compare-remove-btn {
+    display: inline-block;
+    vertical-align: middle;
+    margin-top: 15px;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 5px 15px;
+    cursor: pointer;
+    border-radius: 4px;
+    color: #d9534f;
+    font-size: 14px;
+    width: auto;
+    height: auto;
+    transition: all 0.2s;
+}
+
+.bp-compare-remove-btn:hover {
+    background: #d9534f;
+    color: #fff;
+    border-color: #d9534f;
+}
+
+.bp-spinner {
+    border: 3px solid rgba(0,0,0,0.1);
+    border-top-color: #333;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: bp-spin 1s linear infinite;
+    margin: 40px auto;
+}
+
+/* WooCommerce Account grid fallback fix */
+.bp-products-grid.products {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.bp-products-grid.products::before, .bp-products-grid.products::after {
+    display: none;
+}
+
+/* Custom Notification Toast Styles */
+.bp-notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none; /* Let clicks pass through container */
+}
+
+.bp-notification {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    width: 320px;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    border-left: 4px solid #ff4b4b; /* Default accent color */
+    pointer-events: auto; /* Re-enable clicks for the toast */
+    transform: translateX(120%);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+}
+
+.bp-notification.bp-show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.bp-notification.bp-hiding {
+    transform: translateX(120%);
+    opacity: 0;
+}
+
+.bp-notification-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    color: #999;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bp-notification-close:hover {
+    color: #333;
+}
+
+.bp-notification-title {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    padding-right: 15px; /* space for close button */
+}
+
+.bp-notification-message {
+    margin: 0 0 15px;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.bp-notification-message p:last-child {
+    margin-bottom: 0;
+}
+
+.bp-notification-actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.bp-notification-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    background: #333;
+    color: #fff;
+    transition: background 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.bp-notification-btn:hover {
+    background: #555;
+    color: #fff;
+}
+
+/* Hide WooCommerce default "View cart" link that is appended after Add to Cart */
+a.added_to_cart {
+    display: none !important;
+}
+
+/* Wishlist Table Layout (Similar to Cart) */
+.bp-wishlist-table-wrapper {
+    margin-top: 20px;
+}
+
+.bp-wishlist-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.bp-wishlist-table thead th {
+    border-bottom: 2px solid #eaeaea;
+    padding: 10px 0;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.bp-wishlist-table .product-price {
+    text-align: left;
+}
+
+.bp-wishlist-row {
+    border-bottom: 1px solid #eaeaea;
+}
+
+.bp-wishlist-row td {
+    padding: 20px 0;
+    vertical-align: top;
+}
+
+.bp-wishlist-item-flex {
+    display: flex;
+    gap: 20px;
+}
+
+.bp-wishlist-thumbnail a {
+    display: block;
+    width: 80px;
+    height: 80px;
+    background: #f7f7f7;
+}
+
+.bp-wishlist-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.bp-wishlist-info {
+    flex: 1;
+}
+
+.bp-wishlist-title {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0073aa; /* Matching theme link colors generally, or #333 */
+    text-decoration: none;
+    margin-bottom: 5px;
+}
+
+.bp-wishlist-title:hover {
+    text-decoration: underline;
+}
+
+.bp-wishlist-desc {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.bp-wishlist-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.bp-wishlist-item-actions .button, 
+.bp-wishlist-item-actions .add_to_cart_button {
+    background: #333;
+    color: #fff;
+    padding: 8px 16px;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.bp-wishlist-remove {
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    color: #666 !important;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bp-wishlist-remove.in-wishlist {
+    background-color: transparent !important;
+    background-image: none !important;
+    color: #666 !important;
+}
+
+.bp-wishlist-remove:hover,
+.bp-wishlist-remove.in-wishlist:hover {
+    color: #ff4b4b !important;
+}
+
+/* Single Product Page text-link mitigations */
+a.bp-action-link.bp-wishlist-btn,
+a.bp-action-link.bp-compare-btn {
+    background-image: none !important;
+    background-color: transparent !important;
+}
+
+a.bp-action-link svg.bp-inline-icon {
+    vertical-align: middle;
+    margin-right: 6px;
+    margin-top: -2px;
+}
+
+/* Single Product Page Text Swap Logic */
+a.bp-action-link.bp-wishlist-btn.in-wishlist .bp-text-default,
+a.bp-action-link.bp-compare-btn.in-compare .bp-text-default {
+    display: none;
+}
+
+a.bp-action-link.bp-wishlist-btn.in-wishlist .bp-text-active,
+a.bp-action-link.bp-compare-btn.in-compare .bp-text-active {
+    display: inline !important;
+    color: #4CAF50; /* Green text/tick */
+}
+
+/* Sidebar Dynamic Widgets */
+.bp-sidebar-block {
+    margin-bottom: 30px;
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #eee;
+}
+
+.bp-sidebar-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bp-sidebar-title .bp-count {
+    font-weight: 400;
+    font-size: 13px;
+    color: #888;
+}
+
+.bp-sidebar-dynamic-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.bp-sidebar-dynamic-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f9f9f9;
+}
+
+.bp-sidebar-dynamic-list li:last-child {
+    border-bottom: none;
+}
+
+.bp-sidebar-remove-item {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: #999;
+    flex-shrink: 0;
+    margin-top: 3px;
+    transition: color 0.2s;
+}
+
+.bp-sidebar-remove-item:hover {
+    color: #FF2A61;
+}
+
+.bp-sidebar-dynamic-list a {
+    text-decoration: none;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.4;
+    transition: color 0.2s;
+}
+
+.bp-sidebar-dynamic-list a:hover {
+    color: #FF2A61;
+}
+
+.bp-sidebar-list-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.bp-sidebar-view-btn {
+    background: #f0f0f0;
+    color: #333;
+    padding: 8px 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 2px;
+    transition: all 0.2s;
+}
+
+.bp-sidebar-view-btn:hover {
+    background: #e0e0e0;
+}
+
+.bp-sidebar-clear-all {
+    background: transparent;
+    border: none;
+    color: #FF2A61;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0;
+    transition: opacity 0.2s;
+}
+
+.bp-sidebar-clear-all:hover {
+    opacity: 0.7;
+}
+
+.bp-sidebar-empty {
+    font-size: 14px;
+    color: #888;
+    margin: 0;
+}

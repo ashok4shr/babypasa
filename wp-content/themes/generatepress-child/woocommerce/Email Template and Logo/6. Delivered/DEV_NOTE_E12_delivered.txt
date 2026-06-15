@@ -1,0 +1,94 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E12 Delivered Email
+====================================================================
+
+TRIGGER
+-------
+Webhook status : "Delivered"
+State transition: OUT_FOR_DELIVERY → DELIVERED
+Meta update     : update_post_meta( $order_id, '_upaya_email_state', 'DELIVERED' )
+
+SEND TIMING
+-----------
+Send immediately when webhook fires.
+
+WHAT CHANGES FROM E11
+----------------------
+1. Hero icon   : house with checkmark SVG
+2. Hero copy   : "Your order has been delivered!" /
+                 "We hope your little one loves every bit of it!"
+3. Tracker     : ALL 5 steps → completed (dark pink)
+                 ALL connectors → #ec4899
+                 Step 5 "Delivered" → ACTIVE with "Done" badge
+4. Tiles       : Right tile becomes "Delivered by" (not "Delivery partner")
+                 Copy: "Delivered with care. Thank you for trusting us!"
+5. Items header: "What was delivered" (past tense)
+6. Phone banner: REMOVED — not needed post-delivery
+7. Review block: 5-star teaser added (★★★★★ via Unicode &#9733;)
+                 Soft nudge only — no review link here
+                 Hard ask comes in E13 (2–3 days later)
+
+TRACKER STYLES QUICK REFERENCE (E12)
+--------------------------------------
+All 5 steps    : background:#ec4899 (completed)
+Step 5 border  : border:3px solid #9d174d (active indicator)
+All connectors : background:#ec4899 (completed)
+Badge          : "Done" (not "Now")
+
+CRITICAL — SCHEDULE TWO EMAILS ON DELIVERY
+-------------------------------------------
+When E12 fires, immediately schedule the following:
+
+1. E13 Purchase Feedback / Review
+   Delay : 3 days after delivery
+   Method: wp_schedule_single_event( time() + (3 * DAY_IN_SECONDS),
+             'babypasa_send_review_email', [ $order_id ] )
+
+2. E14 Replenishment Reminder
+   Delay : Depends on product category (see table below)
+   Method: wp_schedule_single_event( time() + ($days * DAY_IN_SECONDS),
+             'babypasa_send_replenishment_email', [ $order_id ] )
+
+   Replenishment timing by product category:
+   ┌─────────────────┬────────────────┐
+   │ Category        │ Days after del │
+   ├─────────────────┼────────────────┤
+   │ Diapers         │ 25 days        │
+   │ Wipes           │ 20 days        │
+   │ Formula Milk    │ 28 days        │
+   │ General / Other │ 30 days        │
+   └─────────────────┴────────────────┘
+
+   For orders with multiple product categories, use the shortest
+   interval so the customer never fully runs out.
+
+FIVE STAR RENDERING NOTE
+------------------------
+Stars use Unicode &#9733; (★) at font-size:26px, letter-spacing:4px.
+No image or icon font dependency — renders in all email clients
+including Outlook 2007+. Color is #ec4899. On mobile, font-size
+reduces to 22px via .stars media query class.
+
+SUBJECT LINE
+------------
+Your order #{{order_number}} has been delivered! 🎉
+
+PLACEHOLDERS USED
+-----------------
+{{first_name}}       $order->get_billing_first_name()
+{{order_number}}     $order->get_order_number()
+{{payment_method}}   $order->get_payment_method_title()
+{{product_name}}     Loop: $item->get_name()
+{{product_qty}}      Loop: $item->get_quantity()
+
+Payment badge: if ( $order->is_paid() ) → Paid / else → Unpaid
+
+NEXT EMAILS IN SEQUENCE
+-----------------------
+E13 — Purchase Feedback / Review (scheduled 3 days post-delivery)
+E14 — Replenishment Reminder (scheduled X days post-delivery)
+
+====================================================================
+END OF NOTE
+====================================================================

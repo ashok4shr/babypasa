@@ -1,0 +1,575 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <title>Your order has been cancelled — BabyPasa</title>
+  <!--[if mso]>
+  <noscript><xml><o:OfficeDocumentSettings>
+    <o:PixelsPerInch>96</o:PixelsPerInch>
+  </o:OfficeDocumentSettings></xml></noscript>
+  <![endif]-->
+  <style type="text/css">
+    /* ── Reset ── */
+    body, table, td, p, a    { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+    table, td                { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+    img                      { border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
+    body                     { margin:0; padding:0; background-color:#f3f4f6; }
+
+    /* ── Layout ── */
+    .email-wrap              { width:600px; }
+    .section-pad             { padding:24px 36px 0; }
+    .body-pad                { padding:24px 36px; }
+
+    /* ── Feature strip ── */
+    .feat-cell               { width:33.33%; text-align:center; padding:20px 12px;
+                               vertical-align:top;
+                               border-right:1px solid rgba(255,255,255,0.25); }
+    .feat-cell-last          { width:33.34%; text-align:center; padding:20px 12px;
+                               vertical-align:top; }
+
+    /* ══════════════════════════════════════
+       TABLET  (481px – 768px)
+       ══════════════════════════════════════ */
+    @media only screen and (min-width:481px) and (max-width:768px) {
+      .email-wrap            { width:100% !important; }
+      .section-pad           { padding:20px 24px 0 !important; }
+      .body-pad              { padding:20px 24px !important; }
+    }
+
+    /* ══════════════════════════════════════
+       MOBILE  (≤ 480px)
+       ══════════════════════════════════════ */
+    @media only screen and (max-width:480px) {
+      .email-wrap            { width:100% !important; }
+      .section-pad           { padding:16px 16px 0 !important; }
+      .body-pad              { padding:16px !important; }
+      .hero-pad              { padding:26px 16px !important; }
+      .hero-h1               { font-size:19px !important; }
+      .feat-cell,
+      .feat-cell-last        { display:block !important; width:100% !important;
+                               border-right:none !important;
+                               border-bottom:1px solid rgba(255,255,255,0.25) !important; }
+      .feat-cell-last        { border-bottom:none !important; }
+      .cta-wrap              { width:100% !important; }
+      .cta-wrap a            { display:block !important; padding:14px 20px !important; }
+      .social-td             { display:block !important; width:100% !important;
+                               padding:0 0 8px !important; text-align:center !important; }
+      .refund-icon-td        { display:none !important; }
+    }
+  </style>
+</head>
+
+<body style="margin:0;padding:0;background-color:#f3f4f6;">
+
+<table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation">
+  <tr>
+    <td align="center" style="padding:28px 12px;">
+
+      <table class="email-wrap" border="0" cellpadding="0" cellspacing="0"
+             width="600" role="presentation"
+             style="background:#ffffff;border-radius:10px;overflow:hidden;">
+
+
+        <!-- ══════════════════════════════════
+             1. LOGO
+             ══════════════════════════════════ -->
+        <tr>
+          <td align="center"
+              style="background:#ffffff;padding:24px 36px 18px;">
+            <img src="https://babypasa.com/wp-content/uploads/babypasa-logo.jpg"
+                 alt="BabyPasa — Weaving Joyful Moments Together"
+                 width="130"
+                 style="display:inline-block;max-width:130px;height:auto;" />
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background:#ec4899;height:4px;font-size:0;line-height:0;">&nbsp;</td>
+        </tr>
+
+
+        <!-- ══════════════════════════════════
+             2. HERO
+             ══════════════════════════════════ -->
+        <tr>
+          <td class="hero-pad" align="center"
+              style="background:#fce7f3;padding:30px 36px;">
+            <table border="0" cellpadding="0" cellspacing="0"
+                   role="presentation" style="margin:0 auto 16px;">
+              <tr>
+                <td style="width:52px;height:52px;background:#ec4899;
+                            border-radius:26px;text-align:center;
+                            vertical-align:middle;">
+                  <svg width="26" height="26" viewBox="0 0 24 24"
+                       fill="none" xmlns="http://www.w3.org/2000/svg"
+                       style="display:inline-block;vertical-align:middle;">
+                    <circle cx="12" cy="12" r="10"
+                            stroke="#ffffff" stroke-width="2" fill="none"/>
+                    <path d="M15 9l-6 6M9 9l6 6"
+                          stroke="#ffffff" stroke-width="2"
+                          stroke-linecap="round"/>
+                  </svg>
+                </td>
+              </tr>
+            </table>
+            <h1 class="hero-h1"
+                style="margin:0 0 8px;
+                        font-family:Arial,Helvetica,sans-serif;
+                        font-size:22px;font-weight:700;
+                        color:#9d174d;line-height:1.3;">
+              Your order has been cancelled
+            </h1>
+            <p style="margin:0;
+                       font-family:Arial,Helvetica,sans-serif;
+                       font-size:14px;color:#be185d;line-height:1.7;">
+              Order <strong>#{{order_number}}</strong> has been
+              cancelled, <strong>{{first_name}}</strong>.<br />
+              We're sorry it didn't work out this time.
+            </p>
+          </td>
+        </tr>
+
+
+        <!-- ══════════════════════════════════
+             3. CANCELLED ORDER TABLE
+             DEVELOPER: Loop $order->get_items()
+             Repeat <tr> per item
+             ══════════════════════════════════ -->
+        <tr>
+          <td class="section-pad"
+              style="padding:24px 36px 0;background:#ffffff;">
+            <table border="0" cellpadding="0" cellspacing="0"
+                   width="100%" role="presentation"
+                   style="border-radius:8px;overflow:hidden;
+                          border:1px solid #f3f4f6;">
+
+              <!-- Header row with Cancelled badge -->
+              <tr>
+                <td style="background:#f3f4f6;padding:10px 16px;
+                            border-bottom:1px solid #ebebeb;">
+                  <table border="0" cellpadding="0" cellspacing="0"
+                         width="100%" role="presentation">
+                    <tr>
+                      <td>
+                        <p style="margin:0;
+                                    font-family:Arial,Helvetica,sans-serif;
+                                    font-size:11px;font-weight:700;
+                                    color:#9d174d;text-transform:uppercase;
+                                    letter-spacing:0.5px;">
+                          Cancelled order
+                        </p>
+                      </td>
+                      <td align="right">
+                        <!--
+                          Only red element in entire email system.
+                          Maximum contrast, no alarm to whole template.
+                        -->
+                        <span style="background:#fee2e2;color:#991b1b;
+                                      font-family:Arial,Helvetica,sans-serif;
+                                      font-size:10px;font-weight:700;
+                                      padding:3px 10px;border-radius:4px;">
+                          Cancelled
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <!-- DEVELOPER: Repeat this row per order item -->
+              <tr>
+                <td style="padding:10px 16px;
+                            font-family:Arial,Helvetica,sans-serif;
+                            font-size:13px;font-weight:600;color:#1f2937;
+                            border-bottom:1px solid #f3f4f6;">
+                  {{product_name}}
+                </td>
+                <td style="padding:10px 16px;text-align:right;
+                            font-family:Arial,Helvetica,sans-serif;
+                            font-size:12px;font-weight:600;color:#9d174d;
+                            white-space:nowrap;
+                            border-bottom:1px solid #f3f4f6;">
+                  &times;&nbsp;{{product_qty}}
+                </td>
+              </tr>
+              <!-- /repeat — remove border-bottom from last row -->
+
+            </table>
+          </td>
+        </tr>
+
+
+        <!-- ══════════════════════════════════
+             4. REFUND DETAILS BLOCK
+             CONDITIONAL — only render when
+             $order->is_paid() === true
+             Hidden entirely for unpaid orders
+             ══════════════════════════════════ -->
+        <!--
+          DEVELOPER: Wrap this entire <tr> in:
+          <?php if ( $refund_info ) : ?> ... <?php endif; ?>
+
+          $refund_info is set in the send handler only when
+          $order->is_paid() returns true. See DEV NOTE for
+          babypasa_get_refund_label() and babypasa_get_refund_note().
+        -->
+        <tr>
+          <td class="section-pad"
+              style="padding:14px 36px 0;background:#ffffff;">
+            <table border="0" cellpadding="0" cellspacing="0"
+                   width="100%" role="presentation"
+                   style="background:#fce7f3;border-radius:8px;
+                          border:1px solid #fbcfe8;">
+              <tr>
+                <td style="padding:16px;">
+
+                  <!-- Refund block header -->
+                  <table border="0" cellpadding="0" cellspacing="0"
+                         role="presentation"
+                         style="margin-bottom:12px;">
+                    <tr>
+                      <td class="refund-icon-td"
+                          style="vertical-align:middle;
+                                  padding-right:8px;">
+                        <table border="0" cellpadding="0" cellspacing="0"
+                               role="presentation">
+                          <tr>
+                            <td style="width:28px;height:28px;
+                                        background:#ec4899;border-radius:6px;
+                                        text-align:center;vertical-align:middle;">
+                              <svg width="15" height="15" viewBox="0 0 24 24"
+                                   fill="none" xmlns="http://www.w3.org/2000/svg"
+                                   style="display:inline-block;vertical-align:middle;">
+                                <path d="M1 4v6h6"
+                                      stroke="#ffffff" stroke-width="2"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"/>
+                                <path d="M3.51 15a9 9 0 102.13-9.36L1 10"
+                                      stroke="#ffffff" stroke-width="2"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"/>
+                              </svg>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                      <td style="vertical-align:middle;">
+                        <p style="margin:0;
+                                    font-family:Arial,Helvetica,sans-serif;
+                                    font-size:12px;font-weight:700;
+                                    color:#9d174d;">
+                          Refund details
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Refund table -->
+                  <table border="0" cellpadding="0" cellspacing="0"
+                         width="100%" role="presentation">
+                    <tr>
+                      <td style="padding:6px 0;
+                                  border-bottom:1px solid #fbcfe8;
+                                  font-family:Arial,Helvetica,sans-serif;
+                                  font-size:12px;color:#be185d;">
+                        Refund amount
+                      </td>
+                      <td style="padding:6px 0;text-align:right;
+                                  border-bottom:1px solid #fbcfe8;
+                                  font-family:Arial,Helvetica,sans-serif;
+                                  font-size:12px;font-weight:700;
+                                  color:#9d174d;white-space:nowrap;">
+                        Rs.&nbsp;{{order_total}}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding:6px 0;
+                                  border-bottom:1px solid #fbcfe8;
+                                  font-family:Arial,Helvetica,sans-serif;
+                                  font-size:12px;color:#be185d;">
+                        Refund method
+                      </td>
+                      <td style="padding:6px 0;text-align:right;
+                                  border-bottom:1px solid #fbcfe8;
+                                  font-family:Arial,Helvetica,sans-serif;
+                                  font-size:12px;color:#374151;">
+                        <!--
+                          DEVELOPER: {{refund_method}}
+                          = babypasa_get_refund_label( $payment_slug )
+                          Currently: "Bank Transfer" for ConnectIPS
+                        -->
+                        Bank Transfer
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding:6px 0;
+                                  font-family:Arial,Helvetica,sans-serif;
+                                  font-size:12px;color:#be185d;">
+                        Expected within
+                      </td>
+                      <td style="padding:6px 0;text-align:right;
+                                  font-family:Arial,Helvetica,sans-serif;
+                                  font-size:12px;color:#374151;
+                                  white-space:nowrap;">
+                        3–5 business days
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!--
+                    DEVELOPER: Render note only when
+                    babypasa_get_refund_note( $payment_slug ) !== null
+                  -->
+                  <p style="margin:10px 0 0;
+                              font-family:Arial,Helvetica,sans-serif;
+                              font-size:11px;color:#be185d;line-height:1.6;">
+                    The refund will be credited to the bank account
+                    linked to your ConnectIPS transaction.
+                  </p>
+
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <!-- /conditional refund block -->
+
+
+        <!-- ══════════════════════════════════
+             5. CTA + SUPPORT LINK
+             ══════════════════════════════════ -->
+        <tr>
+          <td class="section-pad"
+              style="padding:20px 36px 0;background:#ffffff;">
+
+            <table border="0" cellpadding="0" cellspacing="0"
+                   width="100%" role="presentation"
+                   style="margin-bottom:12px;">
+              <tr>
+                <td align="center">
+                  <table class="cta-wrap" border="0" cellpadding="0"
+                         cellspacing="0" role="presentation">
+                    <tr>
+                      <td style="background:#ec4899;border-radius:6px;
+                                  text-align:center;">
+                        <a href="https://babypasa.com"
+                           target="_blank"
+                           style="display:inline-block;
+                                  padding:14px 48px;
+                                  font-family:Arial,Helvetica,sans-serif;
+                                  font-size:15px;font-weight:700;
+                                  color:#ffffff !important;
+                                  text-decoration:none;
+                                  letter-spacing:0.3px;">
+                          Shop Again
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:0;text-align:center;">
+              <a href="mailto:support@babypasa.com"
+                 style="font-family:Arial,Helvetica,sans-serif;
+                         font-size:13px;font-weight:700;
+                         color:#ec4899;text-decoration:none;">
+                Contact Support
+              </a>
+            </p>
+
+          </td>
+        </tr>
+
+
+        <!-- ══════════════════════════════════
+             6. SUPPORT LINE
+             ══════════════════════════════════ -->
+        <tr>
+          <td style="padding:16px 36px 24px;background:#ffffff;">
+            <table border="0" cellpadding="0" cellspacing="0"
+                   width="100%" role="presentation">
+              <tr>
+                <td style="border-top:1px solid #fce7f3;padding-top:18px;">
+                  <p style="margin:0;
+                              font-family:Arial,Helvetica,sans-serif;
+                              font-size:13px;color:#6b7280;">
+                    Questions?&nbsp;
+                    <a href="mailto:support@babypasa.com"
+                       style="color:#ec4899;font-weight:700;
+                               text-decoration:none;">
+                      support@babypasa.com
+                    </a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+
+        <!-- ══════════════════════════════════
+             7. FEATURE STRIP
+             ══════════════════════════════════ -->
+        <tr>
+          <td style="background:#ec4899;padding:0;">
+            <table border="0" cellpadding="0" cellspacing="0"
+                   width="100%" role="presentation">
+              <tr>
+                <td class="feat-cell"
+                    style="width:33.33%;text-align:center;padding:20px 12px;
+                           vertical-align:top;
+                           border-right:1px solid rgba(255,255,255,0.25);">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                       xmlns="http://www.w3.org/2000/svg"
+                       style="display:inline-block;margin-bottom:8px;"
+                       aria-hidden="true">
+                    <rect x="1" y="6" width="13" height="10" rx="1"
+                          stroke="#ffffff" stroke-width="1.6" fill="none"/>
+                    <path d="M14 9h4.5L21 12.5V16H14V9Z"
+                          stroke="#ffffff" stroke-width="1.6"
+                          fill="none" stroke-linejoin="round"/>
+                    <circle cx="5.5"  cy="17.5" r="1.5" fill="#ffffff"/>
+                    <circle cx="17.5" cy="17.5" r="1.5" fill="#ffffff"/>
+                  </svg>
+                  <p style="margin:0 0 4px;font-size:10px;font-weight:700;
+                              color:#ffffff;text-transform:uppercase;
+                              letter-spacing:0.5px;
+                              font-family:Arial,Helvetica,sans-serif;">
+                    Delivery all over Nepal
+                  </p>
+                  <p style="margin:0;font-size:10px;color:#fce7f3;
+                              line-height:1.5;
+                              font-family:Arial,Helvetica,sans-serif;">
+                    Enjoy delivery all over Nepal!
+                  </p>
+                </td>
+                <td class="feat-cell"
+                    style="width:33.34%;text-align:center;padding:20px 12px;
+                           vertical-align:top;
+                           border-right:1px solid rgba(255,255,255,0.25);">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                       xmlns="http://www.w3.org/2000/svg"
+                       style="display:inline-block;margin-bottom:8px;"
+                       aria-hidden="true">
+                    <rect x="3" y="9" width="18" height="12" rx="1"
+                          stroke="#ffffff" stroke-width="1.6" fill="none"/>
+                    <rect x="3" y="6" width="18" height="3" rx="0.5"
+                          stroke="#ffffff" stroke-width="1.6" fill="none"/>
+                    <line x1="12" y1="6" x2="12" y2="21"
+                          stroke="#ffffff" stroke-width="1.4"/>
+                    <path d="M9 6C9 6 8 3 11 3s3 3 1 3"
+                          stroke="#ffffff" stroke-width="1.4"
+                          fill="none" stroke-linecap="round"/>
+                    <path d="M15 6C15 6 16 3 13 3s-3 3-1 3"
+                          stroke="#ffffff" stroke-width="1.4"
+                          fill="none" stroke-linecap="round"/>
+                  </svg>
+                  <p style="margin:0 0 4px;font-size:10px;font-weight:700;
+                              color:#ffffff;text-transform:uppercase;
+                              letter-spacing:0.5px;
+                              font-family:Arial,Helvetica,sans-serif;">
+                    Gift on your behalf
+                  </p>
+                  <p style="margin:0;font-size:10px;color:#fce7f3;
+                              line-height:1.5;
+                              font-family:Arial,Helvetica,sans-serif;">
+                    We'll deliver directly<br />to your loved ones!
+                  </p>
+                </td>
+                <td class="feat-cell-last"
+                    style="width:33.33%;text-align:center;padding:20px 12px;
+                           vertical-align:top;">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                       xmlns="http://www.w3.org/2000/svg"
+                       style="display:inline-block;margin-bottom:8px;"
+                       aria-hidden="true">
+                    <path d="M12 3L4 6.5V12c0 4.5 3.3 8.3 8 9.5
+                             4.7-1.2 8-5 8-9.5V6.5L12 3Z"
+                          stroke="#ffffff" stroke-width="1.6"
+                          fill="none" stroke-linejoin="round"/>
+                    <path d="M8.5 12l2.5 2.5 4.5-4.5"
+                          stroke="#ffffff" stroke-width="1.8"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <p style="margin:0 0 4px;font-size:10px;font-weight:700;
+                              color:#ffffff;text-transform:uppercase;
+                              letter-spacing:0.5px;
+                              font-family:Arial,Helvetica,sans-serif;">
+                    Hassle-free shopping
+                  </p>
+                  <p style="margin:0;font-size:10px;color:#fce7f3;
+                              line-height:1.5;
+                              font-family:Arial,Helvetica,sans-serif;">
+                    Secure payments<br />and easy returns
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+
+        <!-- ══════════════════════════════════
+             8. FOOTER
+             ══════════════════════════════════ -->
+        <tr>
+          <td align="center"
+              style="background:#fce7f3;padding:20px 32px 24px;">
+            <p style="margin:0 0 12px;
+                       font-family:Arial,Helvetica,sans-serif;
+                       font-size:11px;font-weight:700;color:#9d174d;
+                       text-transform:uppercase;letter-spacing:0.6px;">
+              Follow us for offers, tips &amp; more
+            </p>
+            <table border="0" cellpadding="0" cellspacing="0"
+                   role="presentation" style="margin:0 auto 12px;">
+              <tr>
+                <td class="social-td" style="padding:0 10px;">
+                  <a href="https://facebook.com/babypasanepal"
+                     target="_blank"
+                     style="font-family:Arial,Helvetica,sans-serif;
+                             font-size:13px;color:#be185d;
+                             text-decoration:none;white-space:nowrap;">
+                    &#x1F4D8;&nbsp;Facebook &middot; @babypasanepal
+                  </a>
+                </td>
+                <td class="social-td" style="padding:0 10px;">
+                  <a href="https://instagram.com/babypasanepal"
+                     target="_blank"
+                     style="font-family:Arial,Helvetica,sans-serif;
+                             font-size:13px;color:#be185d;
+                             text-decoration:none;white-space:nowrap;">
+                    &#x1F4F8;&nbsp;Instagram &middot; @babypasanepal
+                  </a>
+                </td>
+              </tr>
+            </table>
+            <a href="https://blog.babypasa.com.np"
+               target="_blank"
+               style="font-family:Arial,Helvetica,sans-serif;
+                       font-size:12px;color:#be185d;text-decoration:none;">
+              &#x1F4D6;&nbsp;Read our blog for parenting tips &amp; more
+            </a>
+          </td>
+        </tr>
+
+
+      </table>
+      <!-- /EMAIL CARD -->
+
+      <p style="margin:14px 0 0;
+                  font-family:Arial,Helvetica,sans-serif;
+                  font-size:11px;color:#9ca3af;text-align:center;">
+        &copy; 2025 BabyPasa.Com &mdash; Kathmandu, Nepal
+      </p>
+
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

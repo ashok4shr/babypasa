@@ -1,0 +1,13 @@
+{
+    "name": "babypasa/pwa",
+    "description": "BabyPasa PWA — manifest, service worker, push notifications",
+    "type": "wordpress-plugin",
+    "require": {
+        "php": ">=7.4",
+        "minishlink/web-push": "^8.0"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist"
+    }
+}

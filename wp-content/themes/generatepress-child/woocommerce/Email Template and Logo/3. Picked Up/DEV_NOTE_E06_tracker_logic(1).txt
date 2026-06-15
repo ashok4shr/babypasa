@@ -1,0 +1,130 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E06 Journey Tracker & In Transit State Logic
+====================================================================
+
+OVERVIEW
+--------
+The journey tracker appears across 4 delivery emails. The active
+step advances each time based on the webhook status. A single
+order meta field controls which step lights up.
+
+ORDER META FIELD
+----------------
+Key:   _upaya_email_state
+Store: update_post_meta( $order_id, '_upaya_email_state', $state )
+
+STATE VALUES
+------------
+ORDER_PLACED       — set by WooCommerce on order creation
+PICKED_UP          — set when webhook fires "Pickup Process"
+IN_TRANSIT         — set when webhook fires first "Dispatched To [Hub]"
+OUT_FOR_DELIVERY   — set when webhook fires "Out for Delivery"
+DELIVERED          — set when webhook fires "Delivered"
+
+TRACKER ACTIVE STEP PER EMAIL
+------------------------------
+Email   Template    Active Step         Meta Value
+------  ----------  ------------------  -------------------
+E03     Order conf  Order Placed        ORDER_PLACED
+E06     Picked up   Picked Up           PICKED_UP
+E07     In transit  In Transit          IN_TRANSIT
+E11     Out for del Out for Delivery    OUT_FOR_DELIVERY
+E12     Delivered   Delivered           DELIVERED
+
+HOW TO IMPLEMENT
+----------------
+In your webhook handler (functions.php or custom plugin):
+
+  function babypasa_handle_upaya_webhook( $payload ) {
+      $order_id = $payload['order_id'];     // map from your payload
+      $status   = $payload['status'];       // raw Upaya status string
+
+      $map = [
+          'Pickup Process'    => 'PICKED_UP',
+          'Dispatched To'     => 'IN_TRANSIT',   // use str_contains()
+          'Out for Delivery'  => 'OUT_FOR_DELIVERY',
+          'Delivered'         => 'DELIVERED',
+      ];
+
+      foreach ( $map as $keyword => $state ) {
+          if ( str_contains( $status, $keyword ) ) {
+              $current = get_post_meta( $order_id, '_upaya_email_state', true );
+              // Only advance forward — never go backwards
+              if ( babypasa_state_rank( $state ) > babypasa_state_rank( $current ) ) {
+                  update_post_meta( $order_id, '_upaya_email_state', $state );
+                  babypasa_send_email( $order_id, $state );
+              }
+              break;
+          }
+      }
+  }
+
+  function babypasa_state_rank( $state ) {
+      $ranks = [
+          'ORDER_PLACED'       => 1,
+          'PICKED_UP'          => 2,
+          'IN_TRANSIT'         => 3,
+          'OUT_FOR_DELIVERY'   => 4,
+          'DELIVERED'          => 5,
+      ];
+      return $ranks[ $state ] ?? 0;
+  }
+
+WHY "ONLY ADVANCE FORWARD"
+--------------------------
+Upaya sends multiple webhook hits for a single status change
+(Dispatched To → Arrived At → Received At all fire in quick
+succession for the same hub city). The rank check ensures:
+
+  1. Only the first IN_TRANSIT event sends an email.
+  2. Duplicate webhooks for the same status are silently ignored.
+  3. RTO/return webhooks (which move the parcel backwards
+     geographically) do not overwrite the delivery state and
+     accidentally retrigger a delivery email.
+
+JOURNEY TRACKER IN HTML
+-----------------------
+In the email HTML, the tracker is a 9-column table:
+  [Step1] [Line] [Step2] [Line] [Step3] [Line] [Step4] [Line] [Step5]
+
+Each email has a hardcoded active step — no dynamic rendering
+needed. The styles below show the two states:
+
+  COMPLETED / ACTIVE circle:
+    background:#ec4899; border-radius:50%;
+    (active also adds: border:3px solid #9d174d)
+
+  UPCOMING circle:
+    background:#ffffff; border:2px solid #fbcfe8; border-radius:50%;
+
+  COMPLETED connector line:
+    background:#ec4899; height:2px;
+
+  UPCOMING connector line:
+    background:#fbcfe8; height:2px;
+
+For E06 (Picked Up active):
+  Steps 1-2 → completed style
+  Connectors 1 → completed (#ec4899)
+  Connector 2,3,4 → upcoming (#fbcfe8)
+  Steps 3,4,5 → upcoming style
+
+For E07 (In Transit active):
+  Steps 1-3 → completed style
+  Connectors 1,2 → completed (#ec4899)
+  Connectors 3,4 → upcoming (#fbcfe8)
+  Steps 4,5 → upcoming style
+
+For E11 (Out for Delivery active):
+  Steps 1-4 → completed style
+  Connectors 1,2,3 → completed (#ec4899)
+  Connector 4 → upcoming (#fbcfe8)
+  Step 5 → upcoming style
+
+For E12 (Delivered active):
+  All steps and connectors → completed style
+
+====================================================================
+END OF NOTE
+====================================================================

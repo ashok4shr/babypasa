@@ -1,0 +1,106 @@
+/**
+ * Refactor: Sticky Add to Cart — mobile always-on / desktop scroll-triggered — 2026-06-05
+ * ----------------------------------------------------------------------------------------
+ * Pins the ACTUAL `.bp-single-add-to-cart` form div (not a clone) by lifting it out of
+ * flow with position:fixed, so it is NOT confined by its parent .bp-product-info-column
+ * (which is why pure CSS position:sticky can't be used here). sticky-add-to-cart.js feeds
+ * the live --bp-nav-height / --bp-atc-bar-height and toggles .bp-atc-fixed on desktop.
+ *
+ *   • Mobile (≤990px): the div is ALWAYS fixed directly below the sticky nav (pure CSS).
+ *     The product wrapper gets padding-top so the fixed bar never covers its content.
+ *   • Desktop (≥991px): inline by default; fixed below the nav only while .bp-atc-fixed
+ *     is present (JS adds it once the inline spot scrolls out of view).
+ *
+ * The .bp-bottom-header nav is position:sticky; top:0 on ALL breakpoints, so the bar is
+ * pinned at top:var(--bp-nav-height) (just below the nav), never top:0 (which would cover
+ * the nav). z-index 998 keeps it under the nav (999); off-canvas overlay (10001) / mobile
+ * menu (10002) still sit above it.
+ */
+
+/* ── Mobile (≤990px): the div itself is ALWAYS fixed below the nav ─────────── */
+@media ( max-width: 990px ) {
+	.bp-single-add-to-cart {
+		position: fixed;
+		top: var( --bp-nav-height, 70px );
+		left: 0;
+		right: 0;
+		width: 100%;
+		z-index: 998;
+		margin: 0;
+		border-radius: 0;
+		background: #fff;
+		box-shadow: 0 2px 8px rgba( 0, 0, 0, 0.12 );
+		padding: 8px max( 10px, calc( ( 100% - 1200px ) / 2 + 20px ) );
+		box-sizing: border-box;
+	}
+
+	/* Reserve space so the fixed bar never covers the top of the product content. */
+	.bp-single-product-wrapper {
+		padding-top: var( --bp-atc-bar-height, 64px );
+	}
+}
+
+/* ── Desktop (≥991px): fixed below the nav only while pinned by the JS ──────── */
+@media ( min-width: 991px ) {
+	.bp-single-add-to-cart.bp-atc-fixed {
+		position: fixed;
+		top: var( --bp-nav-height, 70px );
+		left: 0;
+		right: 0;
+		width: 100%;
+		z-index: 998;
+		margin: 0;
+		border-radius: 0;
+		background: #fff;
+		box-shadow: 0 2px 8px rgba( 0, 0, 0, 0.12 );
+		padding: 10px max( 12px, calc( ( 100% - 1200px ) / 2 + 20px ) );
+		box-sizing: border-box;
+		/* Slide in from just under the nav. */
+		animation: bpAtcSlideDown 0.22s ease;
+	}
+
+	@keyframes bpAtcSlideDown {
+		from { transform: translateY( -8px ); opacity: 0; }
+		to   { transform: translateY( 0 );    opacity: 1; }
+	}
+}
+
+/* Placeholder injected by the JS while the desktop bar is fixed — preserves the
+   in-flow height so the column content doesn't jump. (height set inline by JS) */
+.bp-atc-placeholder {
+	display: block;
+	width: 100%;
+}
+
+/* Zero-height IntersectionObserver sentinel at the bar's original location. */
+.bp-atc-sentinel {
+	display: block;
+	width: 100%;
+	height: 0;
+}
+
+/* ============================================================================
+ * Replaced by sticky refactor — 2026-06-05
+ * Original (pre-refactor) rules preserved below (inside this block comment,
+ * non-applied) for rollback. They pinned the whole .bp-single-add-to-cart block
+ * via a JS-toggled .bp-atc-sticky class. The new JS uses .bp-atc-fixed instead.
+ * (Inner explanatory comments were removed so this block nests cleanly.)
+ * ----------------------------------------------------------------------------
+ * .bp-single-add-to-cart.bp-atc-sticky {
+ * 	position: fixed;
+ * 	left: 0;
+ * 	right: 0;
+ * 	width: 100%;
+ * 	z-index: 999;
+ * 	margin: 0;
+ * 	border-radius: 0;
+ * 	box-shadow: 0 2px 8px rgba( 0, 0, 0, 0.12 );
+ * 	padding-left: max( 12px, calc( ( 100% - 1200px ) / 2 + 20px ) );
+ * 	padding-right: max( 12px, calc( ( 100% - 1200px ) / 2 + 20px ) );
+ * 	box-sizing: border-box;
+ * }
+ * .bp-atc-placeholder { display: block; width: 100%; }
+ * @media ( max-width: 767px ) {
+ * 	.bp-single-add-to-cart.bp-atc-sticky { padding-left: 10px; padding-right: 10px; }
+ * }
+ * ============================================================================ */

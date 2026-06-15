@@ -1,0 +1,175 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E19 Return Approved
+====================================================================
+
+TRIGGER
+-------
+Type   : Manual admin action
+Source : Admin reviews return request (stored from E18) and
+         approves it via WooCommerce order panel or custom button
+
+  // Add "Approve Return" button to WooCommerce order panel
+  add_action( 'woocommerce_order_actions',
+  function( $actions ) {
+      $actions['babypasa_approve_return'] = 'Approve Return Request';
+      return $actions;
+  });
+
+  add_action( 'woocommerce_order_action_babypasa_approve_return',
+  function( $order ) {
+      $order_id = $order->get_id();
+
+      // Guard: return must have been requested first
+      if ( ! get_post_meta( $order_id, '_return_requested', true ) ) return;
+      // Guard: don't approve twice
+      if ( get_post_meta( $order_id, '_return_approved', true ) ) return;
+
+      // Mark as approved
+      update_post_meta( $order_id, '_return_approved', '1' );
+      update_post_meta( $order_id, '_return_approved_at', time() );
+
+      babypasa_send_e19( $order_id, $order );
+  });
+
+====================================================================
+SEND FUNCTION
+====================================================================
+
+  function babypasa_send_e19( $order_id, $order = null ) {
+      if ( get_post_meta( $order_id, '_e19_sent', true ) ) return;
+      if ( ! $order ) $order = wc_get_order( $order_id );
+      if ( ! $order ) return;
+
+      $first_name   = $order->get_billing_first_name();
+      $order_number = $order->get_order_number();
+
+      // Read return items stored in E18
+      $return_items_raw = get_post_meta(
+          $order_id, '_return_items', true );
+      $return_items = $return_items_raw
+          ? json_decode( $return_items_raw, true )
+          : [];
+
+      // Fallback: if no specific return items stored,
+      // use all order items
+      if ( empty( $return_items ) ) {
+          foreach ( $order->get_items() as $item ) {
+              $return_items[] = [
+                  'name' => $item->get_name(),
+                  'qty'  => $item->get_quantity(),
+              ];
+          }
+      }
+
+      // Upaya branch locator URL
+      // DEVELOPER: Confirm correct URL with Upaya City Cargo
+      // Use their official branch finder page if available
+      // Fallback: Upaya contact page
+      $branch_url  = 'https://upayacargo.com/branches';
+      $pickup_url  = 'mailto:support@babypasa.com'
+                     . '?subject=Return Pickup Request — Order #'
+                     . $order_number;
+      $support_url = 'mailto:support@babypasa.com';
+
+      babypasa_send_email(
+          $order->get_billing_email(),
+          'Your return request has been approved — Order #'
+              . $order_number . ' ✅',
+          'e19-return-approved',
+          compact(
+              'first_name', 'order_number',
+              'return_items', 'branch_url',
+              'pickup_url', 'support_url'
+          )
+      );
+
+      update_post_meta( $order_id, '_e19_sent', '1' );
+  }
+
+====================================================================
+TWO RETURN OPTIONS — HOW EACH FLOWS
+====================================================================
+
+OPTION 1 — PICKUP BY UPAYA
+CTA: "Request Pickup" → mailto:support@babypasa.com
+     Subject pre-filled: "Return Pickup Request — Order #XXXXX"
+
+Flow:
+  1. Customer clicks → email opens to support@babypasa.com
+  2. Support receives email → contacts Upaya to arrange collection
+  3. Upaya visits customer address, collects parcel
+  4. Upaya scans parcel in → webhook fires
+  5. E20 fires when parcel arrives at warehouse
+
+Admin effort: One email to Upaya per pickup request.
+No automated flow needed.
+
+OPTION 2 — DROP OFF AT UPAYA BRANCH
+CTA: "Find a Branch" → Upaya branch locator URL
+
+Flow:
+  1. Customer visits nearest Upaya branch, hands over parcel
+  2. Upaya scans parcel in → webhook fires automatically
+  3. E20 fires when parcel arrives at warehouse
+
+Admin effort: Zero. Fully self-service.
+
+IMPORTANT — YOU DON'T NEED TO KNOW WHICH OPTION THEY CHOOSE
+In both cases, the parcel eventually arrives at the warehouse
+and triggers E20 via Upaya webhook. The return flow is identical
+regardless of collection method. No admin action needed unless
+the customer explicitly requests a pickup.
+
+====================================================================
+UPAYA BRANCH LOCATOR URL
+====================================================================
+DEVELOPER: Verify the correct Upaya City Cargo branch finder URL
+before deploying. Options:
+
+  Primary : https://upayacargo.com/branches  (check if live)
+  Fallback: https://upayacargo.com/contact
+  Alt     : Link to a custom page on babypasa.com listing
+            major Upaya branches in Nepal if Upaya doesn't
+            have a public locator
+
+If Upaya provides a PDF or list of branches, host it on
+babypasa.com/upaya-branches and use that URL for full control.
+
+====================================================================
+PACK INSTRUCTIONS IN EMAIL (STATIC)
+====================================================================
+Step 1 — Pack instructions (2 points):
+  1. Pack item(s) securely — use original packaging if possible
+  2. Include order number #{{order_number}} inside the package
+
+Step 2 — Return method (2 options, customer chooses)
+
+Only {{order_number}} is dynamic in the packing instructions.
+Everything else is static copy.
+
+====================================================================
+SUBJECT LINE
+====================================================================
+  Your return request has been approved — Order #{{order_number}} ✅
+
+====================================================================
+PLACEHOLDERS USED
+====================================================================
+  {{first_name}}      $order->get_billing_first_name()
+  {{order_number}}    $order->get_order_number()
+  {{product_name}}    Loop: $return_items[]['name']
+  {{product_qty}}     Loop: $return_items[]['qty']
+  {{branch_url}}      Upaya branch locator URL
+  {{pickup_url}}      mailto: with pre-filled subject
+  {{support_url}}     mailto:support@babypasa.com
+
+====================================================================
+NEXT EMAIL IN SEQUENCE
+====================================================================
+E20 — RTO Complete — fires when Upaya webhook confirms parcel
+      received back at warehouse (regardless of pickup or drop-off)
+
+====================================================================
+END OF NOTE
+====================================================================

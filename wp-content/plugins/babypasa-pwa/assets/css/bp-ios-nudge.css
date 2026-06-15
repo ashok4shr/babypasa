@@ -1,0 +1,161 @@
+/**
+ * BabyPasa — PWA Install Prompt card.
+ * Used for both Android (Install button) and iOS (Share instructions).
+ * Slides up from the bottom of the screen.
+ */
+
+/* ── Outer wrapper — positioned & animated ───────────────────────────────── */
+#bp-install-prompt {
+    position: fixed;
+    bottom: 80px;                     /* sits above the mobile browser nav bar  */
+    left: 50%;
+    transform: translateX( -50% ) translateY( 200% );   /* hidden below screen */
+    z-index: 99998;
+    width: 90%;
+    max-width: 340px;
+    transition: transform 0.35s cubic-bezier( 0.34, 1.2, 0.64, 1 );
+    pointer-events: none;
+}
+
+#bp-install-prompt.bp-install-prompt--visible {
+    transform: translateX( -50% ) translateY( 0 );
+    pointer-events: all;
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+.bp-install-prompt__inner {
+    background: #ffffff;
+    border: 2px solid #FF2A61;
+    border-radius: 20px;
+    padding: 14px 18px;
+    box-shadow: 0 8px 32px rgba( 0, 0, 0, 0.12 );
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ── Logo ────────────────────────────────────────────────────────────────── */
+.bp-install-prompt__logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    object-fit: contain;
+    flex-shrink: 0;
+    background: #fff0f3;
+}
+
+.bp-install-prompt__logo--emoji {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: #fff0f3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+/* ── Text block ──────────────────────────────────────────────────────────── */
+.bp-install-prompt__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.bp-install-prompt__title {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1.2;
+}
+
+.bp-install-prompt__subtitle {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+.bp-install-prompt__share-svg {
+    color: #4da6ff;    /* iOS blue — matches Safari's share icon colour */
+    flex-shrink: 0;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+}
+
+/* ── Android: vertical button stack ─────────────────────────────────────── */
+.bp-install-prompt__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.bp-install-prompt__btn {
+    border: none;
+    border-radius: 999px;
+    padding: 7px 15px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+    line-height: 1;
+}
+
+.bp-install-prompt__btn:hover,
+.bp-install-prompt__btn:focus {
+    opacity: 0.82;
+    outline: none;
+}
+
+.bp-install-prompt__btn--install {
+    background: #FF2A61;
+    color: #ffffff;
+}
+
+.bp-install-prompt__btn--later {
+    background: #f3f4f6;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* ── iOS: close × button ─────────────────────────────────────────────────── */
+.bp-install-prompt__close {
+    width: 28px;
+    min-width: 28px;
+    background: rgba( 0, 0, 0, 0.06 );
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    line-height: 1;
+    color: #9ca3af;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.bp-install-prompt__close:hover,
+.bp-install-prompt__close:focus {
+    background: rgba( 0, 0, 0, 0.12 );
+    outline: none;
+}
+
+/* ── Safe-area inset for iPhones with home bar ───────────────────────────── */
+@supports ( bottom: env( safe-area-inset-bottom ) ) {
+    #bp-install-prompt {
+        bottom: calc( 80px + env( safe-area-inset-bottom, 0px ) );
+    }
+}

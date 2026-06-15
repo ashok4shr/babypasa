@@ -1,0 +1,87 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E11 Out for Delivery Email
+====================================================================
+
+TRIGGER
+-------
+Webhook status : "Out for Delivery"
+State transition: IN_TRANSIT → OUT_FOR_DELIVERY
+Meta update     : update_post_meta( $order_id, '_upaya_email_state', 'OUT_FOR_DELIVERY' )
+
+SEND TIMING
+-----------
+Send immediately when webhook fires. This is the most time-sensitive
+email in the sequence — the customer needs to know NOW so they can
+be available. Do not batch or delay.
+
+DIFFERENCE FROM E07
+-------------------
+Duplicate E07 and apply these changes only:
+
+1. Hero icon   : bike/scooter (SVG) instead of truck
+2. Hero copy   : "Your order is out for delivery!" /
+                 "Get ready to receive your little one's essentials!"
+3. Tracker     : Steps 1,2,3,4 → completed (dark pink)
+                 Step 4 "Out for delivery" → ACTIVE with "Now" badge
+                 Connectors 1→2, 2→3, 3→4 → #ec4899 (completed)
+                 Connector 4→5 → #fbcfe8 (upcoming)
+                 Step 5 → upcoming (white circle, #fbcfe8 border)
+4. Phone banner: Replace tracking code sub-section with pink
+                 "Keep your phone handy!" banner (see below)
+5. Items header: "What's being delivered today" (not "on its way")
+6. Delivery tile: "Delivering to you today with care."
+
+PHONE BANNER COPY (positive tone — no mention of returns)
+----------------------------------------------------------
+Title : Keep your phone handy!
+Body  : Our delivery partner will call or SMS you just before
+        they arrive so you don't miss a thing.
+Style : background:#fce7f3; border:1px solid #fbcfe8;
+        Left icon circle: background:#ec4899, icon: phone-call SVG
+        Title color: #9d174d
+        Body color : #be185d
+
+TRACKER STYLES QUICK REFERENCE (E11)
+--------------------------------------
+Step 1 (Order Placed)  : background:#ec4899  ← completed
+Step 2 (Picked Up)     : background:#ec4899  ← completed
+Step 3 (In Transit)    : background:#ec4899  ← completed
+Step 4 (Out Delivery)  : background:#ec4899 + border:3px solid #9d174d ← ACTIVE
+Step 5 (Delivered)     : background:#ffffff; border:2px solid #fbcfe8  ← upcoming
+
+Connector 1→2 : background:#ec4899  ← completed
+Connector 2→3 : background:#ec4899  ← completed
+Connector 3→4 : background:#ec4899  ← completed
+Connector 4→5 : background:#fbcfe8  ← upcoming
+
+SUBJECT LINE
+------------
+Your order #{{order_number}} is out for delivery today! 🛵
+
+PLACEHOLDERS USED
+-----------------
+{{first_name}}       $order->get_billing_first_name()
+{{order_number}}     $order->get_order_number()
+{{tracking_code}}    Webhook payload
+{{payment_method}}   $order->get_payment_method_title()
+{{product_name}}     Loop: $item->get_name()
+{{product_qty}}      Loop: $item->get_quantity()
+
+Payment badge: if ( $order->is_paid() ) → Paid / else → Unpaid
+
+TONE NOTE
+---------
+Keep all copy positive and warm — no mention of returns, missed
+deliveries, or negative consequences. The phone banner achieves
+the same practical goal (customer stays available) with excitement
+rather than anxiety.
+
+NEXT EMAIL IN SEQUENCE
+----------------------
+E12 Delivered — triggers on webhook "Delivered"
+State transition: OUT_FOR_DELIVERY → DELIVERED
+
+====================================================================
+END OF NOTE
+====================================================================

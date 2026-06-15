@@ -1,0 +1,96 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E13 Purchase Feedback / Review Email
+====================================================================
+
+TRIGGER
+-------
+Type   : Scheduled — NOT webhook driven
+Delay  : 3 days after webhook "Delivered" fires
+Hook   : babypasa_send_review_email
+Queued : In E12 handler via wp_schedule_single_event()
+
+  wp_schedule_single_event(
+    time() + ( 3 * DAY_IN_SECONDS ),
+    'babypasa_send_review_email',
+    [ $order_id ]
+  );
+
+  add_action( 'babypasa_send_review_email', function( $order_id ) {
+      $order = wc_get_order( $order_id );
+      // send E13 template with $order
+  });
+
+DO NOT RESEND CHECK
+-------------------
+Before sending, verify the order state is still DELIVERED and
+E13 has not already been sent for this order:
+
+  $already_sent = get_post_meta( $order_id, '_e13_sent', true );
+  if ( $already_sent ) return;
+  // send email...
+  update_post_meta( $order_id, '_e13_sent', '1' );
+
+PRODUCT TO DISPLAY
+------------------
+This email names one specific product, not the full order list.
+Use the first item in the order (or highest value item):
+
+  $items    = $order->get_items();
+  $item     = reset( $items );                   // first item
+  $product  = $item->get_product();
+  $name     = $item->get_name();                 // {{product_name}}
+  $qty      = $item->get_quantity();             // {{product_qty}}
+
+  // Days since order (for "Ordered X days ago")
+  $days_ago = (int) ( ( time() - $order->get_date_created()->getTimestamp() )
+              / DAY_IN_SECONDS );                // {{days_since_order}}
+
+REVIEW LINK
+-----------
+All 5 stars and the CTA button link to the same URL.
+WooCommerce review tab anchor:
+
+  $product_url  = get_permalink( $product->get_id() );
+  $review_link  = $product_url . '#reviews';    // {{review_link}}
+
+If you use a review plugin (e.g. Yotpo, Trustpilot), replace with
+that plugin's direct review submission URL.
+
+STAR RENDERING
+--------------
+Stars use Unicode &#9733; at font-size:38px, color:#ec4899.
+Wrapped in <a href="{{review_link}}"> so each star is clickable.
+On mobile they reduce to 30px via .stars-link media query class.
+
+All 5 stars link to the same {{review_link}} — there is no
+per-star rating logic in email (email clients don't support it).
+The star selection happens on the product review page itself.
+
+WHAT THIS EMAIL DOES NOT HAVE
+------------------------------
+- No journey tracker (delivery is complete)
+- No payment tiles (not relevant)
+- No tracking code (not relevant)
+- No order summary table (keep it short — one product only)
+
+SUBJECT LINE
+------------
+How are you finding it, {{first_name}}? Leave a quick review ⭐
+
+PLACEHOLDERS USED
+-----------------
+{{first_name}}         $order->get_billing_first_name()
+{{product_name}}       First (or highest value) item name
+{{product_qty}}        First item quantity
+{{days_since_order}}   Days since order creation (integer)
+{{review_link}}        Product permalink + #reviews anchor
+
+NEXT EMAIL IN SEQUENCE
+-----------------------
+E14 — Replenishment Reminder (scheduled separately in E12)
+No email is triggered by E13 itself.
+
+====================================================================
+END OF NOTE
+====================================================================

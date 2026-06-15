@@ -1,0 +1,167 @@
+====================================================================
+BABYPASA — DEVELOPER NOTE
+E17 RTO Initiated (Return to Origin)
+====================================================================
+
+TRIGGER
+-------
+Webhook status : "Return Process"
+State transition: Any → RTO
+Meta update     : update_post_meta( $order_id, '_upaya_email_state', 'RTO' )
+
+  // In webhook handler:
+  if ( str_contains( $status, 'Return Process' ) ) {
+      $current = get_post_meta( $order_id, '_upaya_email_state', true );
+
+      // Only fire once — if state is already RTO, skip
+      if ( $current === 'RTO' ) return;
+
+      update_post_meta( $order_id, '_upaya_email_state', 'RTO' );
+      babypasa_send_e17( $order_id );
+  }
+
+====================================================================
+SEND FUNCTION
+====================================================================
+
+  function babypasa_send_e17( $order_id ) {
+      if ( get_post_meta( $order_id, '_e17_sent', true ) ) return;
+
+      $order = wc_get_order( $order_id );
+      if ( ! $order ) return;
+
+      $first_name    = $order->get_billing_first_name();
+      $order_number  = $order->get_order_number();
+      $was_paid      = $order->is_paid();
+      $order_total   = wc_price( $order->get_total() );
+      $payment_slug  = $order->get_payment_method();
+
+      // Items
+      $items = [];
+      foreach ( $order->get_items() as $item ) {
+          $items[] = [
+              'name' => $item->get_name(),
+              'qty'  => $item->get_quantity(),
+          ];
+      }
+
+      // Refund info — only if paid online
+      $refund_info = null;
+      if ( $was_paid ) {
+          $refund_info = [
+              'amount'   => $order_total,
+              'method'   => babypasa_get_refund_label( $payment_slug ),
+              'note'     => babypasa_get_refund_note( $payment_slug ),
+              'timeline' => '3–5 business days',
+          ];
+      }
+
+      $shop_url    = home_url( '/' );
+      $support_url = 'mailto:support@babypasa.com';
+
+      babypasa_send_email(
+          $order->get_billing_email(),
+          'An update on your order #' . $order_number
+              . ', ' . $first_name,
+          'e17-rto-initiated',
+          compact(
+              'first_name', 'order_number', 'items',
+              'refund_info', 'shop_url', 'support_url'
+          )
+      );
+
+      update_post_meta( $order_id, '_e17_sent', '1' );
+  }
+
+====================================================================
+CONDITIONAL RENDERING — TWO VERSIONS
+====================================================================
+
+VERSION A — Paid online ( $order->is_paid() === true )
+  - Two-option card: Re-order (pink) + Request Refund (neutral)
+  - Refund details table below: amount, Bank Transfer, 3–5 days
+  - PHP: if ( $refund_info ) { render Version A } else { render B }
+
+VERSION B — COD or unpaid ( $order->is_paid() === false )
+  - Single full-width Re-order card only
+  - No refund section, no refund mention anywhere
+  - Customer paid nothing → nothing to refund
+
+In template:
+  <?php if ( $refund_info ) : ?>
+    <!-- Version A: two options + refund table -->
+  <?php else : ?>
+    <!-- Version B: re-order only -->
+  <?php endif; ?>
+
+====================================================================
+REUSE REFUND HELPERS FROM E15
+====================================================================
+babypasa_get_refund_label() and babypasa_get_refund_note() are
+already defined for E15. Reuse them directly — no duplication.
+
+  $refund_info['method'] = babypasa_get_refund_label( $payment_slug );
+  $refund_info['note']   = babypasa_get_refund_note( $payment_slug );
+
+Currently: ConnectIPS → "Bank Transfer"
+Adding eSewa/Khalti → one array entry each (same as E15/E04)
+
+====================================================================
+IMPORTANT — REFUND NOT PROCESSED YET
+====================================================================
+E17 tells the customer a refund is AVAILABLE if they want it.
+The actual refund is processed only after:
+
+  1. Parcel arrives at warehouse (E20 fires)
+  2. Admin inspects and confirms parcel condition
+  3. Admin issues refund in WooCommerce order panel
+  4. E21 fires — refund confirmed to customer
+
+Do NOT imply refund is automatic or immediate in E17 copy.
+"Processed 3–5 days after parcel is received" is the correct framing.
+
+====================================================================
+STATE NOTE — DO NOT ADVANCE FROM RTO
+====================================================================
+Once state = RTO, no further delivery-related emails should fire.
+The webhook handler must check: if state is RTO or higher, skip
+OUT_FOR_DELIVERY and DELIVERED processing even if those webhooks
+arrive late (Upaya sometimes sends stale events).
+
+  // Guard in webhook handler:
+  $rto_states = [ 'RTO', 'FOLLOW_UP' ];
+  if ( in_array( $current_state, $rto_states, true ) ) {
+      // Only allow RTO_COMPLETE to advance
+      if ( ! str_contains( $status, 'RTO Complete' ) ) return;
+  }
+
+====================================================================
+SUBJECT LINE
+====================================================================
+  An update on your order #{{order_number}}, {{first_name}}
+
+(Neutral — customer opens out of curiosity, not dread.)
+
+====================================================================
+PLACEHOLDERS USED
+====================================================================
+  {{first_name}}      $order->get_billing_first_name()
+  {{order_number}}    $order->get_order_number()
+  {{product_name}}    Loop: $item->get_name()
+  {{product_qty}}     Loop: $item->get_quantity()
+  {{order_total}}     wc_price( $order->get_total() )
+  {{refund_method}}   babypasa_get_refund_label( $payment_slug )
+  {{shop_url}}        home_url( '/' )
+  {{support_url}}     mailto:support@babypasa.com
+
+  Conditional: $refund_info !== null → Version A / else → Version B
+
+====================================================================
+NEXT EMAIL IN SEQUENCE
+====================================================================
+E20 — RTO Complete — fires when webhook "RTO Complete" received
+      (parcel physically back at warehouse, ready for inspection)
+
+====================================================================
+END OF NOTE
+====================================================================

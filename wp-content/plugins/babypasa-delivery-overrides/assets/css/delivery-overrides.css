@@ -1,0 +1,59 @@
+/* ---------------------------------------------------------------
+   BabyPasa Delivery Overrides — badge styles
+   Used on: single product page, cart, checkout order review
+   --------------------------------------------------------------- */
+
+.bp-free-delivery-badge {
+	display: inline-block;
+	padding: 3px 10px;
+	font-size: 0.75em;
+	font-weight: 700;
+	line-height: 1.4;
+	color: #fff;
+	background-color: #2ecc71;
+	border-radius: 3px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	vertical-align: middle;
+}
+
+/* Variant shown on the single-product page — slightly larger, own line */
+.woocommerce div.product .bp-free-delivery-badge {
+	display: block;
+	width: fit-content;
+	margin-bottom: 0.75em;
+	font-size: 0.8em;
+	padding: 4px 12px;
+}
+
+/* Inline variant used inside cart / checkout item names */
+.bp-free-delivery-badge--inline {
+	display: inline-block;
+	margin-left: 6px;
+	font-size: 0.7em;
+	padding: 2px 8px;
+}
+
+/* ---------------------------------------------------------------
+   Track Orders — My Account page
+   --------------------------------------------------------------- */
+
+/* Coloured status pill shown when Upaya returns a tracking status */
+.bp-tracking-status {
+	display: inline-block;
+	padding: 2px 10px;
+	font-size: 0.78em;
+	font-weight: 700;
+	line-height: 1.5;
+	color: #fff;
+	background-color: #3498db;
+	border-radius: 3px;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+/* Muted text for "Awaiting update" / "—" states */
+.bp-tracking-awaiting {
+	color: #999;
+	font-style: italic;
+}

@@ -1,0 +1,214 @@
+/* Babypasa Newsletter — admin styles */
+
+/* ─── Stats bar ──────────────────────────────────────────────────────────── */
+
+.bpnl-wrap .bpnl-stats-bar {
+	display: flex;
+	gap: 20px;
+	margin: 10px 0 18px;
+}
+
+.bpnl-wrap .bpnl-stat {
+	background: #f0f0f1;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 6px 14px;
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.bpnl-wrap .bpnl-stat-active {
+	background: #edfaef;
+	border-color: #46b450;
+	color: #1d7a22;
+}
+
+/* ─── Status badges ──────────────────────────────────────────────────────── */
+
+.bpnl-badge {
+	display: inline-block;
+	padding: 2px 10px;
+	border-radius: 12px;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: capitalize;
+}
+
+.bpnl-badge-active {
+	background: #edfaef;
+	color: #1d7a22;
+	border: 1px solid #46b450;
+}
+
+.bpnl-badge-unsubscribed {
+	background: #fde8e8;
+	color: #a00;
+	border: 1px solid #dc3232;
+}
+
+/* ─── Token helper box ───────────────────────────────────────────────────── */
+
+.bpnl-token-box {
+	background: #f9f9f9;
+	border: 1px solid #ddd;
+	border-left: 4px solid #0073aa;
+	padding: 10px 14px;
+	margin: 0 0 16px;
+	font-size: 13px;
+	border-radius: 0 4px 4px 0;
+}
+
+.bpnl-token-box code {
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 2px 7px;
+	margin: 0 4px;
+	font-size: 12px;
+	color: #c0143c;
+}
+
+/* ─── Editor label ───────────────────────────────────────────────────────── */
+
+.bpnl-editor-label {
+	display: block;
+	font-weight: 600;
+	font-size: 14px;
+	color: #1d2327;
+	margin-bottom: 8px;
+}
+
+/* ─── Split pane: HTML code + live preview ───────────────────────────────── */
+
+.bpnl-editor-wrap {
+	display: flex;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	overflow: hidden;
+	margin-bottom: 20px;
+	/* height drives both panes equally */
+	height: 520px;
+}
+
+.bpnl-pane {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.bpnl-code-pane {
+	border-right: 1px solid #c3c4c7;
+}
+
+/* ─── Pane header bar ────────────────────────────────────────────────────── */
+
+.bpnl-pane-header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 12px;
+	background: #f0f0f1;
+	border-bottom: 1px solid #c3c4c7;
+	flex-shrink: 0;
+}
+
+.bpnl-pane-label {
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.07em;
+	color: #1d2327;
+}
+
+.bpnl-preview-note {
+	font-size: 11px;
+	color: #787c82;
+}
+
+/* ─── HTML textarea ──────────────────────────────────────────────────────── */
+
+.bpnl-html-editor {
+	flex: 1;
+	width: 100%;
+	box-sizing: border-box;
+	border: none;
+	border-radius: 0;
+	padding: 14px 16px;
+	font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+	font-size: 13px;
+	line-height: 1.65;
+	tab-size: 2;
+	resize: none;
+	background: #1e1e2e;
+	color: #cdd6f4;
+	outline: none;
+	overflow-y: auto;
+}
+
+.bpnl-html-editor:focus {
+	outline: none;
+	box-shadow: none;
+}
+
+/* ─── Preview iframe ─────────────────────────────────────────────────────── */
+
+.bpnl-preview-iframe {
+	flex: 1;
+	width: 100%;
+	border: none;
+	background: #fff;
+}
+
+/* ─── Responsive: stack on narrow screens ────────────────────────────────── */
+
+@media ( max-width: 960px ) {
+	.bpnl-editor-wrap {
+		flex-direction: column;
+		height: auto;
+	}
+
+	.bpnl-code-pane {
+		border-right: none;
+		border-bottom: 1px solid #c3c4c7;
+	}
+
+	.bpnl-html-editor {
+		min-height: 300px;
+	}
+
+	.bpnl-preview-iframe {
+		min-height: 320px;
+	}
+}
+
+/* ─── Send section ───────────────────────────────────────────────────────── */
+
+.bpnl-send-section {
+	margin-top: 20px;
+}
+
+.bpnl-send-result {
+	margin-top: 12px;
+	padding: 12px 16px;
+	border-radius: 4px;
+	font-size: 13px;
+}
+
+.bpnl-send-result.bpnl-success {
+	background: #edfaef;
+	border: 1px solid #46b450;
+	color: #1d7a22;
+}
+
+.bpnl-send-result.bpnl-error {
+	background: #fde8e8;
+	border: 1px solid #dc3232;
+	color: #a00;
+}
+
+/* ─── Nav tabs ───────────────────────────────────────────────────────────── */
+
+.bpnl-wrap .nav-tab-wrapper {
+	margin-bottom: 20px;
+}
