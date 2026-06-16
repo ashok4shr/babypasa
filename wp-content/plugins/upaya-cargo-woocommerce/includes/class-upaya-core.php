@@ -99,6 +99,9 @@ final class UPAYA_Core {
 		// Cron retry for failed order submissions.
 		add_action( 'upaya_retry_order', [ $this, 'handle_retry_order' ] );
 
+		// Daily location-cache refresh (Bug B).
+		add_action( 'upaya_refresh_location_cache', [ $this, 'refresh_location_cache' ] );
+
 		// Declare HPOS (High-Performance Order Storage) compatibility.
 		add_action( 'before_woocommerce_init', [ $this, 'declare_hpos_compatibility' ] );
 	}
@@ -158,6 +161,22 @@ final class UPAYA_Core {
 	 */
 	public function handle_retry_order( int $order_id ): void {
 		( new UPAYA_Order_Manager() )->submit_order_to_upaya( $order_id );
+	}
+
+	/**
+	 * Cron callback: rebuilds the Upaya location cache once per day.
+	 *
+	 * @return void
+	 */
+	public function refresh_location_cache(): void {
+		$logger = new UPAYA_Logger();
+		$api    = new UPAYA_API( get_option( 'upaya_api_key', '' ), $logger );
+		$cache  = new UPAYA_Location_Cache( $api, $logger );
+
+		$result = $cache->rebuild();
+		if ( is_wp_error( $result ) ) {
+			$logger->error( 'Daily location refresh failed — ' . $result->get_error_message() );
+		}
 	}
 
 	/**

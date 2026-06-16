@@ -106,6 +106,13 @@ function upaya_activate(): void {
 	dbDelta( $sql );
 
 	update_option( 'upaya_db_version', UPAYA_VERSION );
+
+	// Schedule the daily location-cache refresh (Bug B). Guarded so reactivation
+	// never stacks duplicate events. We do NOT fetch synchronously here — the API
+	// key may not be configured yet; the first cron tick handles the initial warm.
+	if ( ! wp_next_scheduled( 'upaya_refresh_location_cache' ) ) {
+		wp_schedule_event( time(), 'daily', 'upaya_refresh_location_cache' );
+	}
 }
 register_activation_hook( UPAYA_PLUGIN_FILE, 'upaya_activate' );
 
@@ -138,6 +145,20 @@ function upaya_maybe_upgrade_db(): void {
 }
 add_action( 'plugins_loaded', 'upaya_maybe_upgrade_db', 5 );
 
+/**
+ * Self-heals the daily location-refresh schedule for installs updated via
+ * `git pull` (where the activation hook never re-runs). Mirrors
+ * upaya_maybe_upgrade_db(); schedules at most one event.
+ *
+ * @return void
+ */
+function upaya_maybe_schedule_location_refresh(): void {
+	if ( ! wp_next_scheduled( 'upaya_refresh_location_cache' ) ) {
+		wp_schedule_event( time(), 'daily', 'upaya_refresh_location_cache' );
+	}
+}
+add_action( 'plugins_loaded', 'upaya_maybe_schedule_location_refresh', 6 );
+
 /* --------------------------------------------------------------------------
  * Deactivation
  * -------------------------------------------------------------------------- */
@@ -149,6 +170,9 @@ add_action( 'plugins_loaded', 'upaya_maybe_upgrade_db', 5 );
  */
 function upaya_deactivate(): void {
 	flush_rewrite_rules();
+
+	// Remove the daily location-cache refresh event (Bug B teardown).
+	wp_clear_scheduled_hook( 'upaya_refresh_location_cache' );
 }
 register_deactivation_hook( UPAYA_PLUGIN_FILE, 'upaya_deactivate' );
 

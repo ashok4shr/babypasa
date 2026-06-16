@@ -41,6 +41,9 @@ class UPAYA_Admin {
 		add_action( 'wp_ajax_upaya_flush_location_cache', [ $this, 'ajax_flush_location_cache' ] );
 
 		add_filter( 'plugin_action_links_' . UPAYA_PLUGIN_BASENAME, [ $this, 'plugin_action_links' ] );
+
+		// Warn on the settings tab when the daily refresh cron can't run.
+		add_action( 'admin_notices', [ $this, 'maybe_show_cron_notice' ] );
 	}
 
 	/* ------------------------------------------------------------------
@@ -80,7 +83,27 @@ class UPAYA_Admin {
 	 */
 	public function save_settings(): void {
 		woocommerce_update_options( $this->get_settings() );
-		$this->location_cache->flush();
+
+		// Rebuild (flush + refill) so the area list is never left empty after a save —
+		// the admin order-screen picker reads the cache directly with no lazy refill.
+		$result = $this->location_cache->rebuild();
+		if ( is_wp_error( $result ) ) {
+			WC_Admin_Settings::add_error( sprintf(
+				/* translators: %s: error message */
+				__( 'Settings saved, but the Upaya location cache refresh failed: %s. The previous area list was kept.', 'upaya-cargo-woocommerce' ),
+				$result->get_error_message()
+			) );
+		} elseif ( 0 === $result ) {
+			WC_Admin_Settings::add_error(
+				__( 'Settings saved, but Upaya returned no delivery areas. Verify your API key and account.', 'upaya-cargo-woocommerce' )
+			);
+		} else {
+			WC_Admin_Settings::add_message( sprintf(
+				/* translators: %d: number of areas */
+				__( 'Settings saved. Upaya location cache refreshed — %d delivery area(s) loaded.', 'upaya-cargo-woocommerce' ),
+				$result
+			) );
+		}
 	}
 
 	/**
@@ -260,8 +283,29 @@ class UPAYA_Admin {
 			wp_send_json_error( __( 'Insufficient permissions.', 'upaya-cargo-woocommerce' ) );
 		}
 
-		$this->location_cache->flush();
-		wp_send_json_success( __( 'Location cache flushed.', 'upaya-cargo-woocommerce' ) );
+		// Flush AND refill in one synchronous step so the admin order-screen area
+		// picker works immediately, with no frontend checkout visit required.
+		$result = $this->location_cache->rebuild();
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( sprintf(
+				/* translators: %s: error message */
+				__( 'Cache refresh failed: %s. Your previous area list was kept.', 'upaya-cargo-woocommerce' ),
+				$result->get_error_message()
+			) );
+		}
+
+		if ( 0 === $result ) {
+			wp_send_json_error(
+				__( 'Cache refreshed, but Upaya returned no delivery areas. Verify your API key and account.', 'upaya-cargo-woocommerce' )
+			);
+		}
+
+		wp_send_json_success( sprintf(
+			/* translators: %d: number of areas */
+			__( 'Location cache refreshed — %d delivery area(s) loaded.', 'upaya-cargo-woocommerce' ),
+			$result
+		) );
 	}
 
 	/* ------------------------------------------------------------------
@@ -328,6 +372,34 @@ class UPAYA_Admin {
 				. '</a>'
 		);
 		return $links;
+	}
+
+	/**
+	 * Warns, only on the Upaya Cargo settings tab, when the daily location-refresh
+	 * cron cannot run: WP-Cron disabled, or the event is not scheduled.
+	 *
+	 * @return void
+	 */
+	public function maybe_show_cron_notice(): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ( $_GET['page'] ?? '' ) !== 'wc-settings' || ( $_GET['tab'] ?? '' ) !== 'upaya_cargo' ) {
+			return;
+		}
+
+		$messages = [];
+		if ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) {
+			$messages[] = __( 'WP-Cron is disabled on this server (DISABLE_WP_CRON), so the daily Upaya location refresh will not run automatically. Use the “Flush Location Cache” button when areas change, or ensure a real system cron triggers wp-cron.php.', 'upaya-cargo-woocommerce' );
+		}
+		if ( false === wp_next_scheduled( 'upaya_refresh_location_cache' ) ) {
+			$messages[] = __( 'The daily Upaya location refresh is not scheduled. Deactivate and reactivate the plugin to re-register it.', 'upaya-cargo-woocommerce' );
+		}
+
+		foreach ( $messages as $msg ) {
+			echo '<div class="notice notice-warning"><p>' . esc_html( $msg ) . '</p></div>';
+		}
 	}
 
 	/**
