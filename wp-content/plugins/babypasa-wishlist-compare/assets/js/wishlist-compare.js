@@ -96,9 +96,17 @@ jQuery(document).ready(function($) {
         $btn.addClass('bp-loading');
         
         var formData = new FormData($form[0]);
-        if ($btn.attr('name') && $btn.val()) {
-            formData.append($btn.attr('name'), $btn.val());
-        }
+
+        // Fix: double quantity in cart — the wc-ajax=add_to_cart endpoint is reached
+        // during a full WP request, so BOTH WC_Form_Handler::add_to_cart_action()
+        // (wp_loaded, reads $_REQUEST['add-to-cart']) AND WC_AJAX::add_to_cart()
+        // (template_redirect, reads $_POST['product_id']) run on the same request.
+        // If the payload carries `add-to-cart`, the item is added TWICE (qty 1 → 2).
+        // Strip it so only the product_id path below adds the item. Simple products
+        // get `add-to-cart` from the submit button's name (previously appended here);
+        // variable products get it from a hidden <input name="add-to-cart">, which
+        // new FormData() already serialised — delete() covers both cases.
+        formData.delete('add-to-cart');
 
         // Fix: cart icon update — wc-ajax=add_to_cart reads $_POST['product_id'] and
         // returns early if it's missing (the WooCommerce `add-to-cart` form field is

@@ -31,6 +31,12 @@ class UPAYA_Location_Cache {
 	/** Cache TTL for a single location: 24 hours. */
 	const TTL_SINGLE = 24 * HOUR_IN_SECONDS;
 
+	/** Transient key for the short concurrency lock held during a rebuild. */
+	const TRANSIENT_LOCK = 'upaya_location_refill_lock';
+
+	/** Lock TTL (seconds) — long enough to cover one /locations fetch. */
+	const LOCK_TTL = 60;
+
 	/** @var UPAYA_API */
 	private UPAYA_API $api;
 
@@ -181,6 +187,65 @@ class UPAYA_Location_Cache {
 		}
 
 		$this->logger->debug( 'Location cache: flushed.' );
+	}
+
+	/**
+	 * Rebuilds the location cache from a fresh /locations API call.
+	 *
+	 * Fetch-then-swap: the API is called FIRST and the cached transients are only
+	 * replaced when it succeeds, so a transient API failure never empties a working
+	 * cache. Shared by the manual "Flush Location Cache" action and the daily refresh
+	 * cron. A short transient lock prevents concurrent rebuilds (manual click racing
+	 * the cron).
+	 *
+	 * @return int|\WP_Error Number of areas loaded on success (0 when Upaya returns a
+	 *                       valid-but-empty list); WP_Error on lock contention or on an
+	 *                       API/transport failure.
+	 */
+	public function rebuild() {
+		// Concurrency guard — bail if another rebuild is already in flight.
+		if ( get_transient( self::TRANSIENT_LOCK ) ) {
+			return new \WP_Error(
+				'upaya_refill_locked',
+				__( 'A location cache refresh is already running. Please try again in a moment.', 'upaya-cargo-woocommerce' )
+			);
+		}
+		set_transient( self::TRANSIENT_LOCK, 1, self::LOCK_TTL );
+
+		// Fetch fresh data BEFORE touching the existing cache.
+		$raw = $this->api->get_raw_locations();
+
+		if ( is_wp_error( $raw ) ) {
+			$this->logger->error( 'Location cache rebuild failed — ' . $raw->get_error_message() );
+			delete_transient( self::TRANSIENT_LOCK );
+			return $raw; // Existing cache left intact.
+		}
+
+		if ( ! is_array( $raw ) ) {
+			$raw = [];
+		}
+
+		// Swap in the fresh data: drop the flattened + per-location caches so they are
+		// recomputed from the new raw tree, then store the new raw tree.
+		$old = get_transient( self::TRANSIENT_ALL );
+		delete_transient( self::TRANSIENT_ALL );
+		if ( is_array( $old ) ) {
+			foreach ( $old as $location ) {
+				if ( isset( $location['locationId'] ) ) {
+					delete_transient( self::TRANSIENT_SINGLE_PREFIX . (int) $location['locationId'] );
+				}
+			}
+		}
+		set_transient( self::TRANSIENT_RAW, $raw, self::TTL_ALL );
+
+		// Warm the flattened list (recomputed from the fresh raw tree) and count areas.
+		$flattened = $this->get_locations();
+		$count     = is_array( $flattened ) ? count( $flattened ) : 0;
+
+		delete_transient( self::TRANSIENT_LOCK );
+
+		$this->logger->debug( "Location cache rebuilt — {$count} area(s) loaded." );
+		return $count;
 	}
 
 	/**

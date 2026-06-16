@@ -39,6 +39,42 @@ No files outside this plugin directory were modified.
 
 ---
 
+## Scenario 3 — per-product area-based free delivery (district-level)
+
+> Note: the older sections above predate this scenario; the authoritative behaviour
+> is the code. In particular the free-delivery checkbox lives on the product **Shipping**
+> tab and a package is free when **any** item qualifies (one free item → free shipment).
+
+A product can ship free **only inside admin-selected districts** (e.g. Kathmandu only,
+excluding Bhaktapur — even though both sit under the Kathmandu Hub, because matching is
+at the **district** level, not the hub level).
+
+- **Meta:** `_bp_free_delivery_areas` — array of district tokens on the parent product
+  (variations inherit via the variation→parent fallback). Empty = no area-based free
+  delivery (fail-safe).
+- **Admin UI:** a `wc-enhanced-select` multi-select on the product **Shipping** tab,
+  directly below "Offer Free Delivery". Districts are derived from the live Upaya
+  location list (`UPAYA_Location_Cache::get_locations()` → last `-` segment of each area
+  name). Saved tokens are merged into the options so a selection survives a cold cache.
+- **Matching:** extends `BP_Free_Delivery_Product::override_rate_if_any_free`
+  (`woocommerce_package_rates`, priority 10). The destination district is the last `-`
+  segment of `$package['destination']['city']` (= `billing_city`). An item qualifies when
+  that district is in its `_bp_free_delivery_areas`. Free-everywhere (`_bp_free_delivery`)
+  still wins, so a product with both set is free everywhere.
+- **Badges:** product page shows `Free Delivery in <districts>`; the cart/checkout inline
+  badge appears only when the chosen destination district actually matches.
+- **Rollback:** define `BP_FREE_DELIVERY_AREAS_DISABLED` truthy, or return `false` from
+  the `bp_free_delivery_areas_enabled` filter, to revert to free-everywhere-only.
+- **District parsing override:** filter `bp_free_delivery_district_from_area`.
+- **Area-level (future):** the picker and matcher are token-based. To select at area
+  granularity instead of district, return the full area name from `district_from_area()`
+  and feed full names into `get_selectable_districts()` — see the `AREA-LEVEL (future)`
+  comments in the code. No other changes needed.
+- **Admin orders:** `woocommerce_package_rates` does not fire on the admin order screen,
+  so this override is not auto-applied there (same as the free-everywhere flag).
+
+---
+
 ## How rate interception works
 
 `woocommerce_package_rates` fires **after** all shipping methods (including Upaya) have called `calculate_shipping()` and added their rates to the package. This means:
