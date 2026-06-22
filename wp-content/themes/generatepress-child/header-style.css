@@ -856,3 +856,16 @@
     }
 
 }
+
+/* Mobile: swap the header cart icon for the search icon. The cart lives in the
+   footer bottom nav (.mbn-bar) at this breakpoint, so the header shows search
+   instead. Placed after the 991px block so it wins on source order. */
+@media (max-width: 768px) {
+    .bp-header-icons .bp-search-toggle {
+        display: flex;
+    }
+
+    .bp-mini-cart {
+        display: none;
+    }
+}
