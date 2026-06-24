@@ -6,9 +6,13 @@
  * data is embedded directly in this script, parsed from 127_0_0_1.sql
  * (152 customers, 121 with telephone, 301 address records).
  *
- * Usage:
- *   wp eval-file backfill-billing-phone.php
- *   wp eval-file backfill-billing-phone.php -- --dry-run
+ * Usage (as root, add --allow-root BEFORE the file path):
+ *   wp --allow-root eval-file import-phones.php            # write changes
+ *   wp --allow-root eval-file import-phones.php dry-run    # preview only
+ *
+ * The dry-run flag is read from $args and accepts either "dry-run" or
+ * "--dry-run". Pass it as a plain positional arg (no dashes) to avoid
+ * WP-CLI trying to parse it as a command parameter.
  *
  * What it does:
  *   - Matches WP users to Magento customers by email (case-insensitive)
@@ -26,7 +30,8 @@
 // ARGS
 // ─────────────────────────────────────────────────────────────
 
-$dry_run = in_array( '--dry-run', $args, true );
+$args    = isset( $args ) && is_array( $args ) ? $args : [];
+$dry_run = in_array( 'dry-run', $args, true ) || in_array( '--dry-run', $args, true );
 
 if ( $dry_run ) {
     WP_CLI::log( '---- DRY RUN — no data will be written ----' );
