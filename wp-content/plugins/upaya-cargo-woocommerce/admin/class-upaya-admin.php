@@ -148,7 +148,7 @@ class UPAYA_Admin {
 				'title'    => __( 'Default Pickup Location', 'upaya-cargo-woocommerce' ),
 				'type'     => 'select',
 				'desc'     => __( 'Default Upaya pickup location used when no zone override is configured.', 'upaya-cargo-woocommerce' ),
-				'id'       => 'upaya_default_location_id',
+				'id'       => 'upaya_default_pickup_location',
 				'default'  => '',
 				'class'    => 'wc-enhanced-select',
 				'css'      => 'min-width: 300px;',

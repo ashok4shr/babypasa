@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BabyPasa Returns & RTO
  * Description: Customer-initiated returns + Upaya RTO (return-to-origin) flow, with the client-design emails E16–E20. Wires the ready-to-wire return templates to real senders.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      BabyPasa
  * Requires at least: 6.4
  * Requires PHP: 7.4
@@ -31,7 +31,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'BP_RETURNS_VERSION', '1.0.0' );
+define( 'BP_RETURNS_VERSION', '1.1.0' );
 define( 'BP_RETURNS_FILE', __FILE__ );
 define( 'BP_RETURNS_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BP_RETURNS_URL', plugin_dir_url( __FILE__ ) );

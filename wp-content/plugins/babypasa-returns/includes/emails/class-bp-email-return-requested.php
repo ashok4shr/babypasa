@@ -31,10 +31,12 @@ class BP_Email_Return_Requested extends BP_Email_Base {
 
 	protected function get_template_vars(): array {
 		return array(
-			'order'         => $this->object,
-			'email_heading' => $this->get_heading(),
-			'return_items'  => BP_Returns_State::get_return_items( $this->object ),
-			'email'         => $this,
+			'order'           => $this->object,
+			'email_heading'   => $this->get_heading(),
+			'return_items'    => BP_Returns_State::get_return_items( $this->object ),
+			// Upaya reference ("BPA…") the customer should quote for the return.
+			'upaya_reference' => BP_Returns_State::get_display_reference( $this->object ),
+			'email'           => $this,
 		);
 	}
 }

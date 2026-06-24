@@ -20,6 +20,8 @@ $delay        = $is_edit ? absint( $ad->popup_delay )                   : 0;
 $frequency    = $is_edit ? $ad->frequency                               : 'once';
 $link_url     = $is_edit ? esc_url( $ad->link_url ?? '' )               : '';
 $sort_order   = $is_edit ? absint( $ad->sort_order ?? 0 )               : 0;
+$start_date   = $is_edit ? esc_attr( $ad->start_date ?? '' )            : '';
+$end_date     = $is_edit ? esc_attr( $ad->end_date ?? '' )              : '';
 
 // Placement (banners only). Parse stored slugs so legacy rows default to
 // Trending only; new ads start with no placement selected.
@@ -145,6 +147,42 @@ $page_title = $is_edit
 									<?php echo $is_edit ? esc_html__( 'Update Ad', 'bp-ads-manager' ) : esc_html__( 'Save Ad', 'bp-ads-manager' ); ?>
 								</button>
 							</div>
+						</div>
+					</div>
+
+					<!-- Schedule (display date range) -->
+					<div class="postbox">
+						<div class="postbox-header">
+							<h2><?php esc_html_e( 'Schedule', 'bp-ads-manager' ); ?></h2>
+						</div>
+						<div class="inside">
+							<div class="bp-field-row">
+								<label for="bp_ad_start_date">
+									<strong><?php esc_html_e( 'Display From', 'bp-ads-manager' ); ?></strong>
+								</label>
+								<input
+									type="date"
+									id="bp_ad_start_date"
+									name="bp_ad_start_date"
+									value="<?php echo $start_date; ?>"
+									class="widefat"
+								>
+							</div>
+							<div class="bp-field-row">
+								<label for="bp_ad_end_date">
+									<strong><?php esc_html_e( 'Display Until', 'bp-ads-manager' ); ?></strong>
+								</label>
+								<input
+									type="date"
+									id="bp_ad_end_date"
+									name="bp_ad_end_date"
+									value="<?php echo $end_date; ?>"
+									class="widefat"
+								>
+							</div>
+							<p class="description">
+								<?php esc_html_e( 'Optional. The ad only shows on/after "Display From" and on/before "Display Until". Leave both blank to always show.', 'bp-ads-manager' ); ?>
+							</p>
 						</div>
 					</div>
 

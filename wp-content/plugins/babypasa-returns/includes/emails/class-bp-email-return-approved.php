@@ -40,13 +40,16 @@ class BP_Email_Return_Approved extends BP_Email_Base {
 		$pickup_url  = 'mailto:support@babypasa.com?subject=' . rawurlencode( 'Return Pickup Request — Order #' . $order_number );
 
 		return array(
-			'order'         => $this->object,
-			'email_heading' => $this->get_heading(),
-			'return_items'  => BP_Returns_State::get_return_items( $this->object ),
-			'branch_url'    => $branch_url,
-			'pickup_url'    => $pickup_url,
-			'support_url'   => $this->support_url(),
-			'email'         => $this,
+			'order'           => $this->object,
+			'email_heading'   => $this->get_heading(),
+			'return_items'    => BP_Returns_State::get_return_items( $this->object ),
+			// Upaya's order_reference_id ("BPA{order_number}{counter}") — the id Upaya
+			// recognises. Shown in the pack note so the warehouse can match the parcel.
+			'upaya_reference' => BP_Returns_State::get_display_reference( $this->object ),
+			'branch_url'      => $branch_url,
+			'pickup_url'      => $pickup_url,
+			'support_url'     => $this->support_url(),
+			'email'           => $this,
 		);
 	}
 }

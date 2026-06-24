@@ -270,6 +270,15 @@ class UPAYA_Shipping_Method extends WC_Shipping_Method {
 			}
 		}
 
+		// Fall back to the configured Default Pickup Location when the destination
+		// city is empty (initial checkout load) or unmatched in the location cache.
+		// The option stores an area name (same identifier the checkout uses), which we
+		// resolve to its location ID exactly as a real checkout for that area would.
+		$default = trim( (string) get_option( 'upaya_default_pickup_location', '' ) );
+		if ( '' !== $default ) {
+			return $this->location_cache->get_location_id_by_name( $default );
+		}
+
 		return 0;
 	}
 

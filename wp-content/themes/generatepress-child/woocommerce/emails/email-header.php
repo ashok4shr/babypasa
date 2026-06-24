@@ -150,6 +150,13 @@ switch ( $bp_email_id ) {
 		$bp_hero_sub  = 'Great news' . ( $bp_first_name ? ', <strong>' . esc_html( $bp_first_name ) . '</strong>' : '' ) . ' &mdash; we&rsquo;re ready to process your return for order <strong>#' . esc_html( $bp_order_num ) . '</strong>.<br />Here&rsquo;s what to do next.';
 		break;
 
+	case 'bp_return_rejected':
+		// CLIENT TEMPLATE: E22 — return request declined.
+		$bp_hero_icon = $bp_icon_cross;
+		$bp_hero_pad  = '30px 36px';
+		$bp_hero_sub  = 'We&rsquo;ve reviewed your return request for order <strong>#' . esc_html( $bp_order_num ) . '</strong>' . ( $bp_first_name ? ', <strong>' . esc_html( $bp_first_name ) . '</strong>' : '' ) . ', but we&rsquo;re unable to approve it this time.';
+		break;
+
 	case 'bp_rto_complete':
 		// CLIENT TEMPLATE: E20 — returned parcel received at warehouse.
 		$bp_hero_icon = $bp_icon_warehouse;

@@ -217,6 +217,8 @@ class BP_Ads_Admin {
 			'frequency'    => sanitize_key( $_POST['bp_ad_frequency'] ?? 'once' ),
 			'link_url'     => esc_url_raw( wp_unslash( $_POST['bp_ad_link_url'] ?? '' ) ),
 			'placement'    => $placement,
+			'start_date'   => sanitize_text_field( wp_unslash( $_POST['bp_ad_start_date'] ?? '' ) ),
+			'end_date'     => sanitize_text_field( wp_unslash( $_POST['bp_ad_end_date'] ?? '' ) ),
 			'sort_order'   => absint( $_POST['bp_ad_sort_order'] ?? 0 ),
 		);
 

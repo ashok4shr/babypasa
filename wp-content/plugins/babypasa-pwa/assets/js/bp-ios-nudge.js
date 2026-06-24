@@ -146,6 +146,9 @@
         requestAnimationFrame( function () {
             requestAnimationFrame( function () {
                 el.classList.add( 'bp-install-prompt--visible' );
+                // BABYPASA 2026-06-24 (Task 2): flag body so desktop CSS can offset
+                // page content (body.pwa-banner-active padding-bottom). No-op on mobile.
+                document.body.classList.add( 'pwa-banner-active' );
             } );
         } );
 
@@ -172,6 +175,8 @@
     // ── Dismiss ───────────────────────────────────────────────────────────────
     function dismiss( el ) {
         el.classList.remove( 'bp-install-prompt--visible' );
+        // BABYPASA 2026-06-24 (Task 2): clear the body offset flag on dismiss.
+        document.body.classList.remove( 'pwa-banner-active' );
         localStorage.setItem( STORAGE_KEY, Date.now().toString() );
         setTimeout( function () {
             if ( el.parentNode ) el.parentNode.removeChild( el );
