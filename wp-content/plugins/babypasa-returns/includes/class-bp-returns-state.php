@@ -23,20 +23,24 @@ defined( 'ABSPATH' ) || exit;
 
 final class BP_Returns_State {
 
-	const META_STATE       = '_bp_return_state';
-	const META_ITEMS       = '_bp_return_items';        // JSON [{name,qty}]
-	const META_REASON      = '_bp_return_reason';
-	const META_REQUESTED   = '_bp_return_requested_at';
-	const META_APPROVED    = '_bp_return_approved_at';
-	const META_ATTEMPTS    = '_bp_delivery_attempts';
-	const META_E16_LAST    = '_bp_e16_last_sent';        // timestamp (cooldown)
-	const META_E17_SENT    = '_bp_e17_sent';
-	const META_E18_SENT    = '_bp_e18_sent';
-	const META_E19_SENT    = '_bp_e19_sent';
-	const META_E20_SENT    = '_bp_e20_sent';
+	const META_STATE         = '_bp_return_state';
+	const META_ITEMS         = '_bp_return_items';        // JSON [{name,qty}]
+	const META_REASON        = '_bp_return_reason';
+	const META_REQUESTED     = '_bp_return_requested_at';
+	const META_APPROVED      = '_bp_return_approved_at';
+	const META_REJECTED      = '_bp_return_rejected_at';
+	const META_REJECT_REASON = '_bp_return_reject_reason';
+	const META_ATTEMPTS      = '_bp_delivery_attempts';
+	const META_E16_LAST      = '_bp_e16_last_sent';        // timestamp (cooldown)
+	const META_E17_SENT      = '_bp_e17_sent';
+	const META_E18_SENT      = '_bp_e18_sent';
+	const META_E19_SENT      = '_bp_e19_sent';
+	const META_E20_SENT      = '_bp_e20_sent';
+	const META_E22_SENT      = '_bp_e22_sent';
 
 	const STATE_REQUESTED    = 'REQUESTED';
 	const STATE_APPROVED     = 'APPROVED';
+	const STATE_REJECTED     = 'REJECTED';
 	const STATE_RTO          = 'RTO';
 	const STATE_RTO_COMPLETE = 'RTO_COMPLETE';
 
@@ -50,6 +54,17 @@ final class BP_Returns_State {
 
 	public static function get_state( \WC_Order $order ): string {
 		return (string) $order->get_meta( self::META_STATE );
+	}
+
+	/**
+	 * Customer-facing order reference: the Upaya order_reference_id ("BPA…", set
+	 * by the Upaya plugin after submission), or the WC order number prefixed with
+	 * '#' as a fallback. This is the id Upaya / the warehouse recognises, so it is
+	 * shown wherever the customer needs to identify the order for a return.
+	 */
+	public static function get_display_reference( \WC_Order $order ): string {
+		$ref = trim( (string) $order->get_meta( '_upaya_reference_id' ) );
+		return ( '' !== $ref ) ? $ref : ( '#' . $order->get_order_number() );
 	}
 
 	public static function set_state( \WC_Order $order, string $state ): void {

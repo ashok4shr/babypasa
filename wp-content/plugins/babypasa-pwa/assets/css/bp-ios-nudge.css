@@ -159,3 +159,42 @@
         bottom: calc( 80px + env( safe-area-inset-bottom, 0px ) );
     }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * BABYPASA — 2026-06-24: Desktop layout fix (Task 2).
+ * On desktop the floating card overlaid page content. Render it instead as a
+ * slim stripe anchored to the bottom-centre of the viewport, with a body
+ * padding-bottom offset so content is never obscured. Mobile / tablet
+ * (≤1024px) behaviour above is intentionally left unchanged.
+ * Placed AFTER the @supports block so bottom:0 wins over the safe-area bottom.
+ * ────────────────────────────────────────────────────────────────────────── */
+@media ( min-width: 1025px ) {
+    #bp-install-prompt {
+        bottom: 0;
+        z-index: 999;
+        width: auto;
+        max-width: 480px;
+        /* Hidden state slides down; global .--visible rule slides back to translateY(0). */
+        transform: translateX( -50% ) translateY( 110% );
+    }
+
+    .bp-install-prompt__inner {
+        max-height: 72px;
+        padding: 12px 24px;
+        border-radius: 8px 8px 0 0;          /* rounded top corners at the viewport edge */
+        box-shadow: 0 -2px 12px rgba( 0, 0, 0, 0.12 );
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    /* Lay the Android buttons out horizontally so they fit the slim stripe. */
+    .bp-install-prompt__actions {
+        flex-direction: row;
+    }
+
+    /* Offset page content by the stripe height; class is toggled by bp-ios-nudge.js. */
+    body.pwa-banner-active {
+        padding-bottom: 72px;
+    }
+}

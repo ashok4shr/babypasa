@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  */
 class BP_Ads_DB {
 
-	const DB_VERSION = '1.4.0';
+	const DB_VERSION = '1.5.0';
 	const DB_OPTION  = 'bp_ads_db_version';
 
 	/**
@@ -101,6 +101,8 @@ class BP_Ads_DB {
   device       ENUM('all','mobile','desktop') NOT NULL DEFAULT 'all',
   link_url     VARCHAR(500)    NOT NULL DEFAULT '',
   placement    VARCHAR(255)    NOT NULL DEFAULT '',
+  start_date   DATE            NULL DEFAULT NULL,
+  end_date     DATE            NULL DEFAULT NULL,
   sort_order   INT             NOT NULL DEFAULT 0,
   created_at   DATETIME        DEFAULT CURRENT_TIMESTAMP,
   updated_at   DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -132,6 +134,18 @@ class BP_Ads_DB {
 			$wpdb->query( "ALTER TABLE {$table} ADD COLUMN placement VARCHAR(255) NOT NULL DEFAULT '' AFTER `link_url`" );
 		}
 
+		// Display date-range window (optional per ad). dbDelta does not reliably add
+		// these to an existing table, so add them manually when still missing.
+		if ( ! in_array( 'start_date', $existing_cols, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->query( "ALTER TABLE {$table} ADD COLUMN start_date DATE NULL DEFAULT NULL AFTER `placement`" );
+		}
+
+		if ( ! in_array( 'end_date', $existing_cols, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->query( "ALTER TABLE {$table} ADD COLUMN end_date DATE NULL DEFAULT NULL AFTER `start_date`" );
+		}
+
 		update_option( self::DB_OPTION, self::DB_VERSION );
 	}
 
@@ -156,11 +170,25 @@ class BP_Ads_DB {
 	public static function get_active( $type ) {
 		global $wpdb;
 		$table = self::table_name();
+
+		// Date-range window: an ad shows only when today falls within its optional
+		// start/end dates. NULL bounds mean "no limit", so ads with no dates set
+		// always display (backwards-compatible). current_time() respects the site
+		// timezone (Settings → General), unlike PHP's date()/time().
+		$today = current_time( 'Y-m-d' );
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE active = 1 AND type = %s ORDER BY sort_order ASC, created_at DESC",
-				$type
+				"SELECT * FROM {$table}
+				 WHERE active = 1
+				   AND type = %s
+				   AND ( start_date IS NULL OR start_date <= %s )
+				   AND ( end_date   IS NULL OR end_date   >= %s )
+				 ORDER BY sort_order ASC, created_at DESC",
+				$type,
+				$today,
+				$today
 			)
 		);
 	}
@@ -442,6 +470,18 @@ class BP_Ads_DB {
 		}
 		if ( isset( $data['sort_order'] ) ) {
 			$clean['sort_order'] = absint( $data['sort_order'] );
+		}
+
+		// Display window dates: keep only valid Y-m-d values; store NULL otherwise
+		// (empty/invalid = no bound). NULL is written as SQL NULL by wpdb.
+		foreach ( array( 'start_date', 'end_date' ) as $date_col ) {
+			if ( isset( $data[ $date_col ] ) ) {
+				$raw = trim( (string) $data[ $date_col ] );
+				$dt  = DateTime::createFromFormat( 'Y-m-d', $raw );
+				$clean[ $date_col ] = ( '' !== $raw && $dt && $dt->format( 'Y-m-d' ) === $raw )
+					? $raw
+					: null;
+			}
 		}
 
 		return $clean;

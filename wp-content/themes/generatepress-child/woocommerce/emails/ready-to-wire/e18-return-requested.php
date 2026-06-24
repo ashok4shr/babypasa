@@ -60,6 +60,11 @@ if ( empty( $email_heading ) ) {
 
 $return_items = isset( $return_items ) && is_array( $return_items ) ? $return_items : array();
 
+// Upaya reference ("BPA…") if available; else the WC order number. This is the id
+// the customer should quote so there is no confusion on Upaya's side.
+$upaya_reference = isset( $upaya_reference ) ? trim( (string) $upaya_reference ) : '';
+$bp_order_ref    = ( '' !== $upaya_reference ) ? $upaya_reference : ( '#' . $order->get_order_number() );
+
 /*
  * @hooked WC_Emails::email_header() Output the email header (logo, pink rule, hero band, opens body cell).
  */
@@ -174,10 +179,10 @@ do_action( 'woocommerce_email_header', $email_heading, $email );
 						</table>
 					</td>
 					<td style="padding:5px 0 5px 10px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#be185d;line-height:1.5;">
-						Keep your order number
-						<strong>#<?php
-						// CLIENT PLACEHOLDER: {{order_number}} → $order->get_order_number().
-						echo esc_html( $order->get_order_number() );
+						Keep your order reference
+						<strong><?php
+						// Upaya reference ("BPA…"), or the WC order number as fallback.
+						echo esc_html( $bp_order_ref );
 						?></strong> handy &mdash; you&rsquo;ll need it when sending the item back.
 					</td>
 				</tr>

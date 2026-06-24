@@ -64,6 +64,11 @@ $branch_url   = isset( $branch_url ) ? $branch_url : 'https://upayacargo.com/bra
 $pickup_url   = isset( $pickup_url ) ? $pickup_url : 'mailto:support@babypasa.com';
 $support_url  = isset( $support_url ) ? $support_url : 'mailto:support@babypasa.com';
 
+// Upaya reference ("BPA…") if the order was submitted; else fall back to the WC
+// order number. This is the id the customer should write inside the package.
+$upaya_reference = isset( $upaya_reference ) ? trim( (string) $upaya_reference ) : '';
+$bp_pack_ref     = ( '' !== $upaya_reference ) ? $upaya_reference : ( '#' . $order->get_order_number() );
+
 /*
  * @hooked WC_Emails::email_header() Output the email header (logo, pink rule, hero band, opens body cell).
  */
@@ -160,10 +165,10 @@ do_action( 'woocommerce_email_header', $email_heading, $email );
 						</table>
 					</td>
 					<td style="padding:4px 0 4px 10px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#be185d;line-height:1.5;">
-						Include a note with your order number
-						<strong>#<?php
-						// CLIENT PLACEHOLDER: {{order_number}} → $order->get_order_number().
-						echo esc_html( $order->get_order_number() );
+						Include a note with your order reference
+						<strong><?php
+						// Upaya reference ("BPA…"), or the WC order number as fallback.
+						echo esc_html( $bp_pack_ref );
 						?></strong> inside the package.
 					</td>
 				</tr>

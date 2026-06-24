@@ -20,6 +20,7 @@ class BP_Returns_Emails {
 		'bp_rto_initiated'    => 'BP_Email_RTO_Initiated',
 		'bp_return_requested' => 'BP_Email_Return_Requested',
 		'bp_return_approved'  => 'BP_Email_Return_Approved',
+		'bp_return_rejected'  => 'BP_Email_Return_Rejected',
 		'bp_rto_complete'     => 'BP_Email_RTO_Complete',
 	);
 
@@ -37,6 +38,7 @@ class BP_Returns_Emails {
 		require_once BP_RETURNS_DIR . 'includes/emails/class-bp-email-rto-initiated.php';
 		require_once BP_RETURNS_DIR . 'includes/emails/class-bp-email-return-requested.php';
 		require_once BP_RETURNS_DIR . 'includes/emails/class-bp-email-return-approved.php';
+		require_once BP_RETURNS_DIR . 'includes/emails/class-bp-email-return-rejected.php';
 		require_once BP_RETURNS_DIR . 'includes/emails/class-bp-email-rto-complete.php';
 
 		foreach ( self::EMAILS as $class ) {

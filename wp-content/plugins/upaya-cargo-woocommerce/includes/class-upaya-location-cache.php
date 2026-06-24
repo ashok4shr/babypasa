@@ -249,17 +249,36 @@ class UPAYA_Location_Cache {
 	}
 
 	/**
-	 * Returns locations as [locationId => locationName] for admin select dropdowns.
+	 * Returns pickup-location options as [ areaName => "Hub › Area" ] for the admin
+	 * Default Pickup Location dropdown.
 	 *
-	 * @return array<int,string>
+	 * Mirrors the checkout's combined Hub/Area selector (get_hub_area_options) so the
+	 * same area-level locations are selectable and labelled identically. The KEY is the
+	 * exact area `name`, which is what resolve_location_id()/get_location_id_by_name()
+	 * match on — so the stored value resolves to the same locationId a real checkout
+	 * for that area would produce.
+	 *
+	 * (The older flattened-area approach keyed by city-level `locationId`, collapsing
+	 * many areas onto a few rows and dropping area names entirely.)
+	 *
+	 * @return array<string,string>
 	 */
 	public function get_locations_for_select(): array {
 		$select = [];
-		foreach ( $this->get_locations() as $location ) {
-			if ( isset( $location['locationId'], $location['locationName'] ) ) {
-				$select[ (int) $location['locationId'] ] = sanitize_text_field( $location['locationName'] );
+		foreach ( $this->get_raw_cities() as $city ) {
+			$hub = sanitize_text_field( $city['hubName'] ?? '' );
+			foreach ( $city['areas'] ?? [] as $area ) {
+				if ( ! ( $area['isActive'] ?? true ) ) {
+					continue;
+				}
+				$name = sanitize_text_field( $area['name'] ?? '' );
+				if ( $name === '' ) {
+					continue;
+				}
+				$select[ $name ] = ( '' !== $hub ) ? $hub . ' › ' . $name : $name;
 			}
 		}
+		asort( $select ); // Alphabetical by label (field is a searchable enhanced-select).
 		return $select;
 	}
 

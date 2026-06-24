@@ -198,11 +198,20 @@ class UPAYA_API {
 	 * @return array<string,mixed>|\WP_Error
 	 */
 	public function get_order_rates( array $params ) {
+		$location_id = (int) ( $params['location_id'] ?? 0 );
+
+		// Upaya rejects any non-positive location_id with HTTP 422. Bail before the
+		// request so checkout falls through to other shipping methods gracefully.
+		if ( $location_id <= 0 ) {
+			$this->logger->debug( 'Upaya: location_id is invalid or unresolved — skipping API call.' );
+			return [];
+		}
+
 		$body = [
 			'initial_weight'  => (float) ( $params['initial_weight'] ?? $params['weight'] ?? 0.5 ),
 			'order_type'      => sanitize_text_field( $params['order_type']    ?? self::ORDER_TYPE_DELIVERY ),
 			'service_type_id' => (int) ( $params['service_type_id']            ?? self::SERVICE_DOOR_TO_DOOR ),
-			'location_id'     => (int) ( $params['location_id']                ?? 0 ),
+			'location_id'     => $location_id,
 			'length'          => null,
 			'breadth'         => null,
 			'height'          => null,

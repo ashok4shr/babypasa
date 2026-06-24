@@ -21,7 +21,7 @@ $option_keys = [
 	'upaya_api_key',
 	'upaya_auto_submit',
 	'upaya_debug_mode',
-	'upaya_default_location_id',
+	'upaya_default_pickup_location',
 	'upaya_retry_failed_orders',
 	'upaya_db_version',
 ];
