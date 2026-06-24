@@ -61,6 +61,10 @@ class UPAYA_Checkout {
 		// filter WooCommerce documents as authoritative for address-field changes,
 		// so it reliably sorts above the Alternate Mobile Number. See override_billing_phone_field().
 		add_filter( 'woocommerce_billing_fields',           [ $this, 'override_billing_phone_field' ] );
+		// Expose the Alternate Mobile Number on the billing fieldset so it is
+		// editable in My Account → Addresses → Billing Address. Priority 20 runs
+		// after override_billing_phone_field() so phone (80) is already in place.
+		add_filter( 'woocommerce_billing_fields',           [ $this, 'add_alternate_phone_billing_field' ], 20 );
 
 		// ── Shipping address — copy billing → shipping on order save ─────
 		// The checkout has no separate shipping form (shipping section removed
@@ -388,6 +392,43 @@ class UPAYA_Checkout {
 				'title'     => __( 'Please enter a 10-digit mobile number (e.g. 9812345678)', 'upaya-cargo-woocommerce' ),
 			];
 		}
+		return $fields;
+	}
+
+	/**
+	 * Registers the Alternate Mobile Number on the billing address fieldset so
+	 * it is editable in My Account → Addresses → Billing Address, pre-filled
+	 * from and saved to the user meta key `billing_alternate_phone`.
+	 *
+	 * No separate save hook is needed:
+	 *  - Checkout: the field is also added in modify_checkout_fields()
+	 *    (woocommerce_checkout_fields), and WooCommerce core persists billing_-
+	 *    prefixed posted fields to user meta for logged-in customers
+	 *    (WC_Checkout::process_customer).
+	 *  - My Account: WC_Form_Handler::save_address() saves every
+	 *    woocommerce_billing_fields-registered key to user meta automatically.
+	 *
+	 * On the checkout, modify_checkout_fields() re-defines this same key with an
+	 * identical definition, so there is no duplicate row. Priority 81 keeps it
+	 * directly after Mobile Number (billing_phone, 80), matching checkout order.
+	 *
+	 * @param  array<string,array> $fields Billing fields (billing_-prefixed keys).
+	 * @return array<string,array>
+	 */
+	public function add_alternate_phone_billing_field( array $fields ): array {
+		if ( isset( $fields['billing_alternate_phone'] ) ) {
+			return $fields;
+		}
+
+		$fields['billing_alternate_phone'] = [
+			'label'       => __( 'Alternate Mobile Number', 'upaya-cargo-woocommerce' ),
+			'placeholder' => __( 'Enter alternate mobile number', 'upaya-cargo-woocommerce' ),
+			'required'    => false,
+			'type'        => 'tel',
+			'class'       => [ 'form-row-wide' ],
+			'priority'    => 81,
+		];
+
 		return $fields;
 	}
 

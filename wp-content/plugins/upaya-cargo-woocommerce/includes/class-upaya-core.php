@@ -85,6 +85,7 @@ final class UPAYA_Core {
 		require_once $inc . 'class-upaya-webhook.php';
 		require_once $adm . 'class-upaya-admin.php';
 		require_once $adm . 'class-upaya-meta-box.php';
+		require_once $adm . 'class-upaya-customers-report.php';
 	}
 
 	/**
@@ -116,6 +117,12 @@ final class UPAYA_Core {
 		new UPAYA_Checkout();
 		new UPAYA_Meta_Box();
 		new UPAYA_Webhook();
+
+		// Instantiated unconditionally: its woocommerce_rest_prepare_report_customers
+		// filter must be live on REST requests (the Analytics Customers screen fetches
+		// rows over REST, where is_admin() is false). The class's enqueue hook is
+		// admin-only and simply never fires outside wp-admin.
+		new UPAYA_Customers_Report();
 
 		if ( is_admin() ) {
 			new UPAYA_Admin();
