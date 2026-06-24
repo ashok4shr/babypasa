@@ -44,6 +44,7 @@
 !/wp-content/themes/
 /wp-content/themes/*
 !/wp-content/themes/generatepress-child/
+!/import-phones.php
 
 # =============================================================================
 # Re-assert exclusions even INSIDE tracked dirs (last-match-wins; defense in depth)
