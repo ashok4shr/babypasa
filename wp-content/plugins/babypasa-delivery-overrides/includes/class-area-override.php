@@ -20,6 +20,13 @@ class BP_Area_Override {
 	/** WP option key that stores the array of override rules. */
 	const OPTION_KEY = 'bp_area_delivery_overrides';
 
+	/**
+	 * WP option key for the single default charge applied to areas that match no
+	 * area-based rule. Stored as a string: '' = unset (fall through to Upaya),
+	 * '0' = free delivery, any other numeric string = that flat charge.
+	 */
+	const DEFAULT_OPTION_KEY = 'babypasa_delivery_default_override';
+
 	/** WooCommerce settings tab slug. */
 	const TAB_SLUG = 'bp_delivery_overrides';
 
@@ -97,6 +104,25 @@ class BP_Area_Override {
 					<?php $this->render_rule_row( '__INDEX__', [] ); ?>
 				</tr>
 			</tbody>
+		</table>
+
+		<h2 style="margin-top:2em;"><?php esc_html_e( 'Default Delivery Charge Override', 'babypasa-delivery-overrides' ); ?></h2>
+		<p><?php esc_html_e( 'Applies to every delivery area that does NOT match an Area-Based rule above. Leave blank to use the Upaya-calculated charge. Enter 0 for free delivery.', 'babypasa-delivery-overrides' ); ?></p>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row">
+					<label for="babypasa_delivery_default_override"><?php esc_html_e( 'Default charge (NPR)', 'babypasa-delivery-overrides' ); ?></label>
+				</th>
+				<td>
+					<input type="number"
+						name="babypasa_delivery_default_override"
+						id="babypasa_delivery_default_override"
+						value="<?php echo esc_attr( get_option( self::DEFAULT_OPTION_KEY, '' ) ); ?>"
+						min="0"
+						step="0.01"
+						class="regular-text" />
+				</td>
+			</tr>
 		</table>
 
 		<?php
@@ -191,6 +217,18 @@ class BP_Area_Override {
 		}
 
 		update_option( self::OPTION_KEY, $clean );
+
+		// Default override — sanitise as a non-negative float; '' keeps the field
+		// unset so non-matched areas fall through to the Upaya charge. '0' is a
+		// valid value (free delivery) and is preserved, not treated as empty.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$raw_default = isset( $_POST['babypasa_delivery_default_override'] )
+			? trim( (string) wp_unslash( $_POST['babypasa_delivery_default_override'] ) )
+			: '';
+		update_option(
+			self::DEFAULT_OPTION_KEY,
+			'' === $raw_default ? '' : (string) max( 0, (float) $raw_default )
+		);
 	}
 
 	/* ------------------------------------------------------------------
@@ -211,53 +249,67 @@ class BP_Area_Override {
 	 */
 	public function apply_area_override( array $rates, array $package ): array {
 		// billing_city = area name (e.g. "Kathmandu-Naya Baneshwor-Kathmandu").
-		$city = $package['destination']['city'] ?? '';
-		if ( '' === $city ) {
-			return $rates;
-		}
-
+		$city  = $package['destination']['city'] ?? '';
 		$rules = get_option( self::OPTION_KEY, [] );
-		if ( empty( $rules ) || ! is_array( $rules ) ) {
-			return $rates;
+		if ( ! is_array( $rules ) ) {
+			$rules = [];
 		}
 
-		foreach ( $rules as $rule ) {
-			if ( empty( $rule['enabled'] ) ) {
-				continue;
-			}
+		// 1) Area-based rules — first enabled match wins (only when we have a city).
+		if ( '' !== $city ) {
+			foreach ( $rules as $rule ) {
+				if ( empty( $rule['enabled'] ) ) {
+					continue;
+				}
 
-			$area_name = $rule['area_name'] ?? '';
-			if ( '' === $area_name ) {
-				continue;
-			}
+				$area_name = $rule['area_name'] ?? '';
+				if ( '' === $area_name ) {
+					continue;
+				}
 
-			$matched = false;
-			if ( 'exact' === $rule['match_type'] ) {
-				$matched = 0 === strcasecmp( $city, $area_name );
-			} else {
-				// 'contains' — case-insensitive substring match.
-				$matched = false !== stripos( $city, $area_name );
-			}
+				$matched = false;
+				if ( 'exact' === $rule['match_type'] ) {
+					$matched = 0 === strcasecmp( $city, $area_name );
+				} else {
+					// 'contains' — case-insensitive substring match.
+					$matched = false !== stripos( $city, $area_name );
+				}
 
-			if ( ! $matched ) {
-				continue;
-			}
+				if ( ! $matched ) {
+					continue;
+				}
 
-			// Apply this rule to every Upaya Cargo rate in the package.
+				// Apply this rule to every Upaya Cargo rate in the package.
+				foreach ( $rates as $rate_id => $rate ) {
+					if ( false === strpos( $rate_id, 'upaya_cargo' ) ) {
+						continue;
+					}
+					$rate->cost  = (float) ( $rule['override_price'] ?? 0 );
+					$rate->taxes = []; // Clear any shipping tax calculated on the old cost.
+					if ( ! empty( $rule['label'] ) ) {
+						$rate->label = $rule['label'];
+					}
+					$rates[ $rate_id ] = $rate;
+				}
+
+				// First matching rule wins; the default override does not apply.
+				return $rates;
+			}
+		}
+
+		// 2) No area rule matched — apply the Default Delivery Charge Override when
+		// one is set. '' = unset (fall through to the Upaya charge); '0' is a valid
+		// free-delivery value and must be honoured, hence the explicit '' check.
+		$default = get_option( self::DEFAULT_OPTION_KEY, '' );
+		if ( '' !== $default && is_numeric( $default ) ) {
 			foreach ( $rates as $rate_id => $rate ) {
 				if ( false === strpos( $rate_id, 'upaya_cargo' ) ) {
 					continue;
 				}
-				$rate->cost  = (float) ( $rule['override_price'] ?? 0 );
+				$rate->cost  = (float) $default;
 				$rate->taxes = []; // Clear any shipping tax calculated on the old cost.
-				if ( ! empty( $rule['label'] ) ) {
-					$rate->label = $rule['label'];
-				}
 				$rates[ $rate_id ] = $rate;
 			}
-
-			// First matching rule wins; stop processing further rules.
-			break;
 		}
 
 		return $rates;

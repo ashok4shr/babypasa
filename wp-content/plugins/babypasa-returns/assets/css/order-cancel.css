@@ -1,0 +1,23 @@
+/**
+ * BabyPasa Returns — "Cancel Order" My Account action button.
+ *
+ * Neutral/muted styling so it reads as a secondary action sitting alongside the
+ * primary "View" button. The real guard is the server-side Upaya status check,
+ * so the UI is intentionally not destructive (no red).
+ */
+.woocommerce-button.bp-cancel-order,
+a.button.bp-cancel-order {
+	background: #f3f4f6;
+	color: #374151;
+	border: 1px solid #d1d5db;
+}
+
+.woocommerce-button.bp-cancel-order:hover,
+a.button.bp-cancel-order:hover {
+	background: #e5e7eb;
+	color: #111827;
+}
+
+.bp-cancel-order[aria-disabled="true"] {
+	cursor: default;
+}

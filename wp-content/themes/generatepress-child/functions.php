@@ -969,8 +969,17 @@ function bp_capture_email_header_object( $email_heading, $email = null ) {
 	$GLOBALS['bp_email_header_object'] = $email;
 }
 
-// PWA functionality is handled by the BabyPasa PWA plugin (babypasa-pwa).
-//
-// The Nextend Social Login PWA standalone "Continue…" auto-follow fallback was
-// moved to the BabyPasa PWA plugin (bp_nsl_pwa_continue_autofollow in
-// babypasa-pwa.php) on 2026-06-05, where it lives alongside BP_PWA_Auth_Redirect.
+/**
+ * Force Meta for WooCommerce Pixel to send NPR currency parameter.
+ * This fixes tracking when the official plugin falls back to USD for unsupported catalog currencies.
+ */
+add_filter( 'facebook_woocommerce_pixel_event_arguments', 'custom_force_npr_currency_in_pixel', 10, 2 );
+
+function custom_force_npr_currency_in_pixel( $pixel_args, $event_name ) {
+    // Check if custom tracking data exists in the event payload
+    if ( isset( $pixel_args['custom_data'] ) && is_array( $pixel_args['custom_data'] ) ) {
+        $pixel_args['custom_data']['currency'] = 'NPR';
+    }
+    
+    return $pixel_args;
+}
