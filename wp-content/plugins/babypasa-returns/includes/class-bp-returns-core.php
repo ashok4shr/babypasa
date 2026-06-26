@@ -30,6 +30,9 @@ final class BP_Returns_Core {
 
 		// Customer "Request Return" (E18) + admin "Approve Return" (E19) + endpoint.
 		new BP_Returns_Request();
+
+		// Customer order cancellation (My Account → Orders), gated on live Upaya status.
+		new BP_Order_Cancel();
 	}
 
 	private function includes(): void {
@@ -37,5 +40,6 @@ final class BP_Returns_Core {
 		require_once BP_RETURNS_DIR . 'includes/class-bp-returns-emails.php';
 		require_once BP_RETURNS_DIR . 'includes/class-bp-returns-webhook-router.php';
 		require_once BP_RETURNS_DIR . 'includes/class-bp-returns-request.php';
+		require_once BP_RETURNS_DIR . 'includes/class-bp-order-cancel.php';
 	}
 }
