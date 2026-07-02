@@ -1,0 +1,25 @@
+/* Invoice PDF settings screen. */
+.bp-invoice-pdf-wrap #bp-raw-template {
+	font-family: Consolas, Monaco, monospace;
+	white-space: pre;
+}
+.bp-invoice-pdf-wrap .CodeMirror {
+	border: 1px solid #dcdcde;
+	height: auto;
+	min-height: 320px;
+}
+.bp-invoice-pdf-wrap #bp-logo-preview {
+	display: block;
+	margin: 6px 0;
+	padding: 6px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+.bp-invoice-pdf-resets .bp-reset-btn {
+	color: #b32d2e;
+	border-color: #b32d2e;
+}
+.bp-invoice-pdf-dl {
+	margin-top: 8px;
+}
