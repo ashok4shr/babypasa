@@ -24,6 +24,7 @@
 
 	// ── Init ─────────────────────────────────────────────────────────────────
 	$( document ).ready( function () {
+		defaultStatusToProcessing();
 		suppressDefaultAddressUI();
 		bindAddressEvents();
 		bindPaymentStatusEvents();
@@ -35,6 +36,22 @@
 			fetchRate( $hubArea.val() );
 		}
 	} );
+
+	// ── Default new manual orders to "Processing" ─────────────────────────────
+	// This script only loads on the new-order creation screen (enqueue-scoped),
+	// so we preselect Processing in the Order status dropdown. Guarded to the WC
+	// default (wc-pending) so a deliberately chosen status is never overridden;
+	// the admin can still switch it back before clicking Create. A new order's
+	// baseline status is 'pending', so saving as Processing fires the normal
+	// pending→processing transition (customer email + Upaya submission).
+	function defaultStatusToProcessing() {
+		var $status = $( '#order_status' );
+		if ( ! $status.length || $status.val() !== 'wc-pending' ) {
+			return;
+		}
+		// trigger('change') updates the select2 display WooCommerce renders.
+		$status.val( 'wc-processing' ).trigger( 'change' );
+	}
 
 	// ── Pre-fill delivery form when a customer is selected ────────────────────
 	function bindCustomerSelect() {
