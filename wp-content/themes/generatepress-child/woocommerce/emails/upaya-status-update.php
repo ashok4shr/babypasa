@@ -336,26 +336,19 @@ $bp_steps = array(
 							Payment status:
 						</p>
 						<?php
-						// Use date_paid (money actually received) — NOT is_paid(), which only
-						// reflects order *status*. COD orders sit in "processing" without payment,
-						// so is_paid() wrongly reads as Paid; date_paid is set only on
-						// payment_complete() (e.g. ConnectIPS) or once delivered/completed.
+						// Payment badge from the shared helper — driven by the admin
+						// "Payment Status" box (Paid / Partially Paid / Unpaid). NOT
+						// $order->get_date_paid(), which WooCommerce sets on the
+						// processing transition for COD too. See bp_email_payment_badge().
+						require_once get_stylesheet_directory() . '/woocommerce/emails/bp-email-helpers.php';
+						$bp_pay_badge = bp_email_payment_badge( $order );
 						?>
-						<?php if ( $order->get_date_paid() ) : ?>
-						<span style="background:#dcfce7;color:#15803d;
+						<span style="background:<?php echo esc_attr( $bp_pay_badge['bg'] ); ?>;color:<?php echo esc_attr( $bp_pay_badge['color'] ); ?>;
 						             padding:4px 12px;border-radius:4px;
 						             font-family:Arial,Helvetica,sans-serif;
 						             font-size:11px;font-weight:700;">
-							Paid
+							<?php echo esc_html( $bp_pay_badge['label'] ); ?>
 						</span>
-						<?php else : ?>
-						<span style="background:#fef9c3;color:#854d0e;
-						             padding:4px 12px;border-radius:4px;
-						             font-family:Arial,Helvetica,sans-serif;
-						             font-size:11px;font-weight:700;">
-							Unpaid
-						</span>
-						<?php endif; ?>
 					</td>
 				</tr>
 			</table>

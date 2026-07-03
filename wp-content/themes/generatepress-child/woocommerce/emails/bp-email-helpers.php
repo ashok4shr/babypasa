@@ -173,3 +173,46 @@ if ( ! function_exists( 'bp_email_payment_tips' ) ) {
 			. '</td></tr></table>';
 	}
 }
+
+if ( ! function_exists( 'bp_email_payment_badge' ) ) {
+	/**
+	 * Resolve the payment-status badge shown in the order emails.
+	 *
+	 * Single source of truth so the processing (E03) and Upaya delivery emails
+	 * agree. Driven by the admin "Payment Status" box (_bp_payment_status), NOT by
+	 * $order->get_date_paid(): WooCommerce sets date_paid on ANY transition into a
+	 * paid status (processing/completed) regardless of gateway, so COD orders read
+	 * as "Paid" — the exact bug this replaces.
+	 *
+	 * Resolution:
+	 *   - Admin-set box present → fully_paid = Paid, partial = Partially Paid, else Unpaid.
+	 *   - Otherwise (front-end orders) → a real online capture sets a transaction id
+	 *     (e.g. ConnectIPS payment_complete()); COD never does → Paid vs Unpaid.
+	 *
+	 * @param WC_Order $order Order object.
+	 * @return array{label:string,bg:string,color:string} Badge label + colours.
+	 */
+	function bp_email_payment_badge( $order ) {
+		$paid    = array( 'label' => __( 'Paid', 'generatepress-child' ), 'bg' => '#dcfce7', 'color' => '#15803d' );
+		$partial = array( 'label' => __( 'Partially Paid', 'generatepress-child' ), 'bg' => '#fef3c7', 'color' => '#b45309' );
+		$unpaid  = array( 'label' => __( 'Unpaid', 'generatepress-child' ), 'bg' => '#fef9c3', 'color' => '#854d0e' );
+
+		if ( ! $order instanceof WC_Order ) {
+			return $unpaid;
+		}
+
+		$status = (string) $order->get_meta( '_bp_payment_status' );
+		if ( '' !== $status ) {
+			if ( 'fully_paid' === $status ) {
+				return $paid;
+			}
+			if ( 'partial' === $status ) {
+				return $partial;
+			}
+			return $unpaid; // not_paid.
+		}
+
+		// Front-end order (no admin box): trust a real online-gateway capture only.
+		return $order->get_transaction_id() ? $paid : $unpaid;
+	}
+}

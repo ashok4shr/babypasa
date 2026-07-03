@@ -16,8 +16,42 @@ class BP_Admin_Payment_Status {
 
 	public function __construct() {
 		add_action( 'add_meta_boxes', [ $this, 'register_meta_box' ] );
+		// Default admin-created orders to COD before the payment-status save (@20)
+		// and the address-form save (@10) run, so the order carries a method when
+		// those transition it to processing and fire the customer email.
+		add_action( 'woocommerce_process_shop_order_meta', [ $this, 'default_payment_method' ], 5, 2 );
 		add_action( 'woocommerce_process_shop_order_meta', [ $this, 'save' ], 20, 2 );
 		add_filter( 'upaya_payload_cod_amount', [ $this, 'override_cod_amount' ], 10, 4 );
+	}
+
+	/* ------------------------------------------------------------------
+	 * Default payment method
+	 * ------------------------------------------------------------------ */
+
+	/**
+	 * Admin order screens have no payment-method selector, so orders save with no
+	 * method. Default to Cash on Delivery when none is set — never overriding an
+	 * existing method (e.g. ConnectIPS). Front-end orders always carry a method,
+	 * so the empty-guard leaves them untouched.
+	 *
+	 * @param int   $order_id      Order id.
+	 * @param mixed $post_or_order Post or order (unused).
+	 */
+	public function default_payment_method( int $order_id, $post_or_order ): void {
+		$order = wc_get_order( $order_id );
+		if ( ! $order || '' !== (string) $order->get_payment_method() ) {
+			return;
+		}
+
+		$gateways = WC()->payment_gateways() ? WC()->payment_gateways()->payment_gateways() : [];
+		if ( isset( $gateways['cod'] ) ) {
+			// Passing the gateway object sets both the id and the localized title.
+			$order->set_payment_method( $gateways['cod'] );
+		} else {
+			$order->set_payment_method( 'cod' );
+			$order->set_payment_method_title( __( 'Cash on Delivery', 'babypasa-aoe' ) );
+		}
+		$order->save();
 	}
 
 	/* ------------------------------------------------------------------
