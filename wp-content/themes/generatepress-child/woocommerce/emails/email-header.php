@@ -170,6 +170,20 @@ switch ( $bp_email_id ) {
 		$bp_hero_sub  = 'A product you&rsquo;re watching just got cheaper.<br />Grab it before it&rsquo;s gone!';
 		break;
 
+	case 'bp_invoice':
+		// Invoice / receipt (babypasa-order-emails). Reuses the white check
+		// line-icon as a "confirmed order" glyph (no dedicated invoice asset).
+		$bp_hero_icon = $bp_icon_check;
+		$bp_hero_sub  = 'Here&rsquo;s your invoice for order <strong>#' . esc_html( $bp_order_num ) . '</strong>' . ( $bp_first_name ? ', <strong>' . esc_html( $bp_first_name ) . '</strong>' : '' ) . '.<br />Thank you for shopping with BabyPasa.Com!';
+		break;
+
+	case 'bp_feedback':
+		// Feedback / review request (babypasa-order-emails). White heart text
+		// glyph (&#10084; + VS15 forces text, not colour-emoji, presentation).
+		$bp_hero_icon = $bp_icon( '&#10084;&#65038;', 24 );
+		$bp_hero_sub  = 'We hope you&rsquo;re loving order <strong>#' . esc_html( $bp_order_num ) . '</strong>' . ( $bp_first_name ? ', <strong>' . esc_html( $bp_first_name ) . '</strong>' : '' ) . '.<br />Your review helps other parents across Nepal.';
+		break;
+
 	case 'cancelled_order':
 	case 'failed_order':
 		$bp_hero_icon = $bp_icon_cross;
@@ -318,7 +332,7 @@ switch ( $bp_email_id ) {
 						<?php if ( $bp_hero_icon ) : ?>
 						<table border="0" cellpadding="0" cellspacing="0" role="presentation" width="52" style="width:52px;margin:0 auto 16px;">
 							<tr>
-								<!-- HTML width/height attrs keep the badge a true 52x52 square so border-radius renders a circle; Gmail's mobile app collapses CSS-only width on a <td>, turning the badge into a vertical capsule. -->
+								<!-- HTML width/height attrs keep the badge a true 52x52 square so border-radius renders a circle; Gmail's mobile app collapses CSS-only width on a table cell, turning the badge into a vertical capsule. NOTE: never put a literal angle-bracket tag in this comment — Gmail's lenient sanitizer treats it as a real element, ends the comment early, and leaks the trailing text into the inbox snippet. -->
 								<td width="52" height="52" align="center" valign="middle" style="width:52px;min-width:52px;height:52px;background:#ec4899;border-radius:26px;text-align:center;vertical-align:middle;">
 									<?php echo $bp_hero_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static emoji span markup defined above. ?>
 								</td>
