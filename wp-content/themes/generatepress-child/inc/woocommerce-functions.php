@@ -98,6 +98,28 @@ if ( ! function_exists( 'bp_render_product_card' ) ) {
 }
 
 /**
+ * Relabel the loop add-to-cart button for out-of-stock products.
+ *
+ * WooCommerce falls back to "Read more" (WC_Product_Simple::add_to_cart_text())
+ * for products that are not in stock. This shows "Out of Stock" instead across
+ * all product loops (shop/category archives, related, up-sells, shortcodes and
+ * our bp_render_product_card cards). Text only — markup, classes and the link to
+ * the product page are left untouched. In-stock buttons are never affected.
+ *
+ * @author Ashok Shrestha / The Hive Craft
+ *
+ * @param string     $text    The add-to-cart button label.
+ * @param WC_Product $product The product being rendered.
+ * @return string
+ */
+add_filter( 'woocommerce_product_add_to_cart_text', function ( $text, $product ) {
+    if ( $product instanceof WC_Product && ! $product->is_in_stock() ) {
+        return __( 'Out of Stock', 'generatepress-child' );
+    }
+    return $text;
+}, 10, 2 );
+
+/**
  * Helper function for product slider section
  */
 if ( ! function_exists( 'bp_render_product_slider_section' ) ) {
