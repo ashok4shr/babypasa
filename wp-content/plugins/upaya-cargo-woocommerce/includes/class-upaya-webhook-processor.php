@@ -111,6 +111,8 @@ class UPAYA_Webhook_Processor {
 		'picked-up-by-rider'    => 'PICKED_UP',
 		'in-transit-to-hub'     => 'IN_TRANSIT',
 		'in-transit'            => 'IN_TRANSIT',
+		'received-at-hub'            => 'IN_TRANSIT',
+		'prepared-for-transit'  => 'IN_TRANSIT',
 		'dispatched-with-rider' => 'OUT_FOR_DELIVERY',
 		'out-for-delivery'      => 'OUT_FOR_DELIVERY',
 		'delivered'             => 'DELIVERED',

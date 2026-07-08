@@ -182,8 +182,13 @@ if ( post_password_required() ) {
 								?>
 								<button type="button" class="bp-qty-btn bp-plus" aria-label="Increase quantity">+</button>
 							</div>
-							<button type="submit" class="single_add_to_cart_button button alt">
-								<?php echo esc_html( $product->single_add_to_cart_text() ); ?>
+							<button type="submit" class="single_add_to_cart_button button alt<?php echo $product->is_in_stock() ? '' : ' bp-out-of-stock'; ?>"<?php disabled( $product->is_in_stock(), false ); ?>>
+								<?php
+								// Ashok Shrestha / The Hive Craft — show "Out of Stock" and disable the button when the product is not in stock.
+								echo $product->is_in_stock()
+									? esc_html( $product->single_add_to_cart_text() )
+									: esc_html__( 'Out of Stock', 'generatepress-child' );
+								?>
 							</button>
 							<input type="hidden" name="add-to-cart" value="<?php echo absint( $product->get_id() ); ?>" />
 							<input type="hidden" name="variation_id" class="variation_id" value="0" />
@@ -205,7 +210,12 @@ if ( post_password_required() ) {
 						?>
 						<button type="button" class="bp-qty-btn bp-plus" aria-label="Increase quantity">+</button>
 					</div>
-					<button type="submit" name="add-to-cart" value="<?php echo esc_attr( $product->get_id() ); ?>" class="single_add_to_cart_button button alt"><?php echo esc_html( $product->single_add_to_cart_text() ); ?></button>
+					<button type="submit" name="add-to-cart" value="<?php echo esc_attr( $product->get_id() ); ?>" class="single_add_to_cart_button button alt<?php echo $product->is_in_stock() ? '' : ' bp-out-of-stock'; ?>"<?php disabled( $product->is_in_stock(), false ); ?>><?php
+						// Ashok Shrestha / The Hive Craft — show "Out of Stock" and disable the button when the product is not in stock.
+						echo $product->is_in_stock()
+							? esc_html( $product->single_add_to_cart_text() )
+							: esc_html__( 'Out of Stock', 'generatepress-child' );
+					?></button>
 				</form>
 				<?php endif; ?>
 			</div>
