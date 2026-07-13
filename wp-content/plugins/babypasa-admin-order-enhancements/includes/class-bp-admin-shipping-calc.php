@@ -23,12 +23,17 @@ class BP_Admin_Shipping_Calc {
 		add_action( 'wp_ajax_bp_aoe_calc_shipping',  [ $this, 'ajax_calc'  ] );
 		add_action( 'wp_ajax_bp_aoe_apply_shipping', [ $this, 'ajax_apply' ] );
 
-		// Re-resolve the delivery charge at save time from the order's FINAL items
-		// + area, so the persisted charge is always correct even if the live JS
-		// preview didn't re-run (e.g. a product was added after the area was set).
-		// Priority 50 runs after the address form save (10) and WC core save (40),
-		// so the billing/shipping area is already persisted when we read it.
+		// Re-resolve the delivery charge from the order's FINAL items + area, so the
+		// persisted charge is always correct even if the live JS preview didn't run.
+		//
+		//  - woocommerce_process_shop_order_meta (full "Update order" save, prio 50):
+		//    runs after the address form save (10) and WC core save (40), so the
+		//    billing/shipping area is persisted and area-based rules resolve correctly.
+		//  - woocommerce_saved_order_items (the items-box "Recalculate" and "Save"
+		//    buttons both route through wc_save_order_items): lets a free-delivery
+		//    product zero the charge without a full order save.
 		add_action( 'woocommerce_process_shop_order_meta', [ $this, 'enforce_delivery_charge_on_save' ], 50 );
+		add_action( 'woocommerce_saved_order_items',        [ $this, 'enforce_on_saved_items' ], 20, 2 );
 	}
 
 	/* ------------------------------------------------------------------
@@ -153,14 +158,38 @@ class BP_Admin_Shipping_Calc {
 	 * ------------------------------------------------------------------ */
 
 	/**
-	 * Re-resolves the delivery charge from the order's final items + area on save
-	 * and corrects the existing Upaya Cargo shipping line. Runs only for orders we
-	 * manage (MANAGED_META set by ajax_apply), so unrelated/legacy orders are never
-	 * touched. Uses the shared resolver — identical precedence to the frontend.
+	 * Full "Update order" save handler (woocommerce_process_shop_order_meta).
 	 *
 	 * @param int $order_id WC order ID.
 	 */
 	public function enforce_delivery_charge_on_save( $order_id ): void {
+		$this->maybe_enforce( (int) $order_id );
+	}
+
+	/**
+	 * Items-box "Recalculate" / "Save" handler (woocommerce_saved_order_items).
+	 *
+	 * @param int   $order_id WC order ID.
+	 * @param array $items    Posted items (unused; we read the saved order).
+	 */
+	public function enforce_on_saved_items( $order_id, $items = [] ): void {
+		$this->maybe_enforce( (int) $order_id );
+	}
+
+	/**
+	 * Re-resolves the delivery charge from the order's final items + area and
+	 * corrects the existing Upaya Cargo shipping line. Runs only for orders we
+	 * manage (MANAGED_META set by ajax_apply), so unrelated/legacy orders are never
+	 * touched. Uses the shared resolver — identical precedence to the frontend.
+	 *
+	 * Area-safety: on an unsaved draft the order's billing/shipping city is not yet
+	 * persisted (the area lives only in the live form), so we apply only the
+	 * area-independent free-delivery flag and leave any area/default charge alone —
+	 * never clobbering the value the live preview already applied.
+	 *
+	 * @param int $order_id WC order ID.
+	 */
+	private function maybe_enforce( int $order_id ): void {
 		if ( ! function_exists( 'babypasa_resolve_delivery_charge' ) ) {
 			return; // Delivery-overrides plugin inactive.
 		}
@@ -201,6 +230,11 @@ class BP_Admin_Shipping_Calc {
 		$result = babypasa_resolve_delivery_charge( $items, $area );
 		if ( null === $result ) {
 			return; // Nothing applies — leave the last-applied Upaya rate.
+		}
+
+		// No persisted area yet → trust only the area-independent free flag.
+		if ( '' === $area && 'free_product' !== $result['reason'] ) {
+			return;
 		}
 
 		$new_total = (float) $result['charge'];
