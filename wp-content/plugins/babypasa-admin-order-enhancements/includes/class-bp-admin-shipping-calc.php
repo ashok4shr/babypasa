@@ -139,99 +139,48 @@ class BP_Admin_Shipping_Calc {
 	 * ------------------------------------------------------------------ */
 
 	/**
-	 * Applies delivery overrides to a raw Upaya rate, mirroring the two
-	 * woocommerce_package_rates filters from babypasa-delivery-overrides:
+	 * Applies delivery overrides to a raw Upaya rate by delegating to the SAME
+	 * resolver the frontend uses (babypasa_resolve_delivery_charge), so the admin
+	 * manual-order charge is guaranteed identical to checkout. The full precedence
+	 * (product free delivery → product free area → area override → default) lives
+	 * in BP_Delivery_Charge_Resolver.
 	 *
-	 *  priority 10 — BP_Free_Delivery_Product: zero rate if ANY item is free-delivery
-	 *  priority 20 — BP_Area_Override: apply first matching area rule
+	 * Falls back to the raw Upaya rate if the delivery-overrides plugin is inactive
+	 * (the resolver function is then undefined) — never fatals.
 	 *
 	 * @param  float  $rate     Raw Upaya rate in Rs.
 	 * @param  string $label    Current rate label.
-	 * @param  string $area     Area name (billing_city).
+	 * @param  string $area     Area name (the Upaya area selected in the admin form).
 	 * @param  int    $order_id WC order ID.
 	 * @return array{float, string}  [ adjusted_rate, label ]
 	 */
 	private function apply_overrides( float $rate, string $label, string $area, int $order_id ): array {
-		// Priority 10 — free delivery product flag.
-		if ( $this->any_item_free_delivery( $order_id ) ) {
-			return [ 0.0, __( 'Free Delivery', 'babypasa-aoe' ) ];
+		if ( ! function_exists( 'babypasa_resolve_delivery_charge' ) ) {
+			return [ $rate, $label ]; // Delivery-overrides plugin inactive — leave raw Upaya rate.
 		}
 
-		// Priority 20 — area-based override.
-		$area_result = $this->get_area_override( $area );
-		if ( null !== $area_result ) {
-			return [ $area_result['price'], $area_result['label'] ?: $label ];
-		}
-
-		return [ $rate, $label ];
-	}
-
-	/**
-	 * Returns true when AT LEAST ONE item in the order has _bp_free_delivery = 'yes'.
-	 * Checks variation ID first, then falls back to parent product ID, exactly
-	 * as BP_Free_Delivery_Product::override_rate_if_any_free() does.
-	 */
-	private function any_item_free_delivery( int $order_id ): bool {
 		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
-			return false;
-		}
-
-		foreach ( $order->get_items() as $item ) {
-			/** @var WC_Order_Item_Product $item */
-			$variation_id = (int) $item->get_variation_id();
-			$product_id   = (int) $item->get_product_id();
-			$check_id     = $variation_id ?: $product_id;
-
-			if ( 'yes' === get_post_meta( $check_id, '_bp_free_delivery', true ) ||
-				'yes' === get_post_meta( $product_id, '_bp_free_delivery', true ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Returns the first matching enabled area override rule for the given area
-	 * name, or null if none match. Mirrors BP_Area_Override::apply_area_override().
-	 *
-	 * @param  string $area Area name (billing_city).
-	 * @return array{price:float,label:string}|null
-	 */
-	private function get_area_override( string $area ): ?array {
-		if ( '' === $area ) {
-			return null;
-		}
-
-		$rules = get_option( 'bp_area_delivery_overrides', [] );
-		if ( empty( $rules ) || ! is_array( $rules ) ) {
-			return null;
-		}
-
-		foreach ( $rules as $rule ) {
-			if ( empty( $rule['enabled'] ) ) {
-				continue;
-			}
-
-			$rule_area = $rule['area_name'] ?? '';
-			if ( '' === $rule_area ) {
-				continue;
-			}
-
-			$matched = ( 'exact' === $rule['match_type'] )
-				? ( 0 === strcasecmp( $area, $rule_area ) )
-				: ( false !== stripos( $area, $rule_area ) );
-
-			if ( $matched ) {
-				return [
-					'price' => (float) ( $rule['override_price'] ?? 0 ),
-					'label' => sanitize_text_field( $rule['label'] ?? '' ),
+		$items = [];
+		if ( $order ) {
+			foreach ( $order->get_items() as $item ) {
+				/** @var WC_Order_Item_Product $item */
+				$items[] = [
+					'product_id'   => (int) $item->get_product_id(),
+					'variation_id' => (int) $item->get_variation_id(),
 				];
 			}
 		}
 
-		return null;
+		$result = babypasa_resolve_delivery_charge( $items, $area );
+		if ( null === $result ) {
+			return [ $rate, $label ]; // Nothing applies — leave raw Upaya rate.
+		}
+
+		$resolved_label = ( null !== $result['label'] && '' !== $result['label'] )
+			? $result['label']
+			: $label;
+
+		return [ (float) $result['charge'], $resolved_label ];
 	}
 
 	/**

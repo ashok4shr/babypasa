@@ -2,13 +2,16 @@
 /**
  * Feature 1: Free Delivery product flag.
  *
- * Adds a "Offer Free Delivery" checkbox to the WooCommerce product edit page.
- * When ANY item in a cart carries the flag, the Upaya Cargo shipping cost is
- * zeroed out for the whole (single-shipment) package via the
- * woocommerce_package_rates filter (no core files touched).
- * A "Free Delivery" badge is shown on the product page and in the cart.
+ * Adds a "Offer Free Delivery" checkbox and a "Free Delivery Areas" district
+ * picker to the WooCommerce product edit page, and shows the matching "Free
+ * Delivery" badge on the product page and in the cart. When ANY item in a cart
+ * carries the flag (or matches a free area), the Upaya Cargo shipping cost is
+ * zeroed for the whole single-shipment package — but the actual rate change is
+ * performed by BP_Area_Override via the shared BP_Delivery_Charge_Resolver, not
+ * here, so free delivery cannot be clobbered by the area/default override.
  *
  * @package BabyPasa_Delivery_Overrides
+ * @author  Ashok Shrestha / The Hive Craft
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -20,8 +23,12 @@ class BP_Free_Delivery_Product {
 		add_action( 'woocommerce_product_options_shipping', [ $this, 'add_product_field' ] );
 		add_action( 'woocommerce_process_product_meta',     [ $this, 'save_product_field' ] );
 
-		// Rate override — priority 10 so area overrides (priority 20) can still win.
-		add_filter( 'woocommerce_package_rates', [ $this, 'override_rate_if_any_free' ], 10, 2 );
+		// NOTE: this class no longer hooks woocommerce_package_rates. The rate is
+		// applied by BP_Area_Override::apply_delivery_charge() via the shared
+		// BP_Delivery_Charge_Resolver, which evaluates the free-delivery flag and
+		// free-delivery-areas as the highest-precedence rules. Keeping a second
+		// filter here is what previously let the area/default override clobber the
+		// free-delivery zero.
 
 		// Frontend badges.
 		add_action( 'woocommerce_single_product_summary', [ $this, 'show_product_badge' ], 29 );
@@ -106,79 +113,6 @@ class BP_Free_Delivery_Product {
 			}
 		}
 		update_post_meta( $post_id, '_bp_free_delivery_areas', $clean );
-	}
-
-	/* ------------------------------------------------------------------
-	 * Shipping rate override
-	 * ------------------------------------------------------------------ */
-
-	/**
-	 * Zeros the Upaya shipping cost when AT LEAST ONE item in the package is
-	 * flagged as free delivery. Because woocommerce_package_rates fires per
-	 * package and a package is a single shipment to one destination, one free
-	 * item makes the whole shipment free. Returns rates unchanged only when no
-	 * item is flagged.
-	 *
-	 * @param  WC_Shipping_Rate[] $rates   Rates keyed by rate ID.
-	 * @param  array              $package WooCommerce shipping package.
-	 * @return WC_Shipping_Rate[]
-	 */
-	public function override_rate_if_any_free( array $rates, array $package ): array {
-		if ( empty( $package['contents'] ) ) {
-			return $rates;
-		}
-
-		// BABYPASA: Scenario 3 can be globally disabled via constant or filter (rollback
-		// switch). When off, only the original free-everywhere flag is evaluated below.
-		$areas_enabled = $this->areas_feature_enabled();
-
-		// BABYPASA: Destination district (last "-" segment of billing_city), computed
-		// once. Empty when no area is selected yet — then the area-based branch can't match.
-		$dest_district = $areas_enabled ? $this->get_destination_district( $package ) : '';
-
-		$has_free_item = false;
-		foreach ( $package['contents'] as $item ) {
-			$product_id = $item['variation_id'] ? $item['variation_id'] : $item['product_id'];
-			// Check the variation/simple ID first, then fall back to the parent
-			// product ID — the meta is stored on the parent for variable products.
-			if ( 'yes' === get_post_meta( $product_id, '_bp_free_delivery', true )
-				|| 'yes' === get_post_meta( $item['product_id'], '_bp_free_delivery', true ) ) {
-				$has_free_item = true;
-				break;
-			}
-
-			// BABYPASA: Scenario 3 — the item ships free only when the destination
-			// district is one of the districts the merchant selected on the product.
-			// Same variation→parent fallback as the flag above. Free-everywhere (handled
-			// just above) always wins, so a product with both set is free everywhere.
-			if ( $areas_enabled && '' !== $dest_district ) {
-				$areas = $this->get_product_free_areas( $product_id );
-				if ( empty( $areas ) ) {
-					$areas = $this->get_product_free_areas( $item['product_id'] );
-				}
-				if ( $this->district_in_list( $dest_district, $areas ) ) {
-					$has_free_item = true;
-					break;
-				}
-			}
-		}
-
-		if ( ! $has_free_item ) {
-			return $rates; // No qualifying free-delivery item in this package — charge normally.
-		}
-
-		// At least one item qualifies — zero out the Upaya Cargo rate.
-		foreach ( $rates as $rate_id => $rate ) {
-			if ( false !== strpos( $rate_id, 'upaya_cargo' ) ) {
-				$rate->cost  = 0;
-				$rate->label = __( 'Free Delivery', 'babypasa-delivery-overrides' );
-				// Zero any per-item taxes that WC may have added for shipping.
-				$rate->taxes = [];
-				$rates[ $rate_id ] = $rate;
-			}
-		}
-
-		return $rates;
 	}
 
 	/* ------------------------------------------------------------------
@@ -279,83 +213,29 @@ class BP_Free_Delivery_Product {
 	 * ------------------------------------------------------------------ */
 
 	/**
-	 * BABYPASA: Whether area-based (district) free delivery is active. Off-switch for
-	 * rollback — define BP_FREE_DELIVERY_AREAS_DISABLED truthy, or return false from the
-	 * 'bp_free_delivery_areas_enabled' filter, to revert to free-everywhere-only behaviour.
+	 * BABYPASA: The following are thin delegators to BP_Delivery_Charge_Resolver,
+	 * the single canonical implementation of the area-normalisation + free-delivery
+	 * logic. The badge display below and the shared resolver therefore never
+	 * disagree on what "free" means. See class-delivery-charge-resolver.php.
 	 */
 	private function areas_feature_enabled(): bool {
-		if ( defined( 'BP_FREE_DELIVERY_AREAS_DISABLED' ) && BP_FREE_DELIVERY_AREAS_DISABLED ) {
-			return false;
-		}
-		return (bool) apply_filters( 'bp_free_delivery_areas_enabled', true );
+		return BP_Delivery_Charge_Resolver::areas_feature_enabled();
 	}
 
 	/**
-	 * BABYPASA: The districts selected on a product (_bp_free_delivery_areas), as a
-	 * clean array of string tokens. Returns [] when unset/empty.
-	 *
 	 * @param int $product_id Product (or parent) ID.
 	 * @return string[]
 	 */
 	private function get_product_free_areas( int $product_id ): array {
-		if ( $product_id <= 0 ) {
-			return [];
-		}
-		$areas = get_post_meta( $product_id, '_bp_free_delivery_areas', true );
-		if ( ! is_array( $areas ) ) {
-			return [];
-		}
-		$clean = [];
-		foreach ( $areas as $token ) {
-			$token = trim( (string) $token );
-			if ( '' !== $token ) {
-				$clean[] = $token;
-			}
-		}
-		return $clean;
+		return BP_Delivery_Charge_Resolver::get_product_free_areas( $product_id );
 	}
 
 	/**
-	 * BABYPASA: Extracts the district token from an Upaya area name. Upaya names follow
-	 * "<City>-<Sub-area>-<District>", so the district is the last "-" segment
-	 * (e.g. "Kathmandu-Naya Baneshwor-Kathmandu" → "Kathmandu"). Names without a hyphen
-	 * are returned trimmed as-is.
-	 *
-	 * AREA-LEVEL (future): to match at area granularity instead of district, return the
-	 * full $area_name here (and feed full area names into get_selectable_districts()).
-	 * Everything else is token-based and needs no change. The 'bp_free_delivery_district_from_area'
-	 * filter can also remap individual values without code edits.
-	 *
 	 * @param string $area_name Full Upaya area name.
 	 * @return string District token (may be empty).
 	 */
 	private function district_from_area( string $area_name ): string {
-		$area_name = trim( $area_name );
-		if ( '' === $area_name ) {
-			return '';
-		}
-		$parts    = explode( '-', $area_name );
-		$district = trim( (string) end( $parts ) );
-
-		/**
-		 * Filter the district token parsed from an Upaya area name.
-		 *
-		 * @param string $district  Parsed district token.
-		 * @param string $area_name Original area name.
-		 */
-		return (string) apply_filters( 'bp_free_delivery_district_from_area', $district, $area_name );
-	}
-
-	/**
-	 * BABYPASA: District of the shipping package destination, read from
-	 * $package['destination']['city'] (= billing_city, the Upaya area name).
-	 *
-	 * @param array $package WooCommerce shipping package.
-	 * @return string
-	 */
-	private function get_destination_district( array $package ): string {
-		$city = $package['destination']['city'] ?? '';
-		return $this->district_from_area( (string) $city );
+		return BP_Delivery_Charge_Resolver::district_from_area( $area_name );
 	}
 
 	/**
@@ -375,23 +255,12 @@ class BP_Free_Delivery_Product {
 	}
 
 	/**
-	 * BABYPASA: Case-insensitive membership test of a destination district against a
-	 * product's selected district tokens.
-	 *
 	 * @param string   $district Destination district.
 	 * @param string[] $areas    Product's selected district tokens.
 	 * @return bool
 	 */
 	private function district_in_list( string $district, array $areas ): bool {
-		if ( '' === $district || empty( $areas ) ) {
-			return false;
-		}
-		foreach ( $areas as $token ) {
-			if ( 0 === strcasecmp( trim( (string) $token ), $district ) ) {
-				return true;
-			}
-		}
-		return false;
+		return BP_Delivery_Charge_Resolver::district_in_list( $district, $areas );
 	}
 
 	/**

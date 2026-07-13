@@ -7,10 +7,13 @@
  * city that Upaya's checkout JS writes into $package['destination']['city']
  * (= billing_city) and replaces the Upaya shipping cost + label.
  *
- * The filter runs at priority 20, after the free-delivery product override
- * (priority 10), so product-level free-delivery always wins.
+ * This class owns the plugin's single woocommerce_package_rates callback. The
+ * actual precedence (product free delivery → product free area → area override
+ * → default) lives in BP_Delivery_Charge_Resolver so the frontend and the admin
+ * manual-order path cannot diverge. Settings storage/UI still live here.
  *
  * @package BabyPasa_Delivery_Overrides
+ * @author  Ashok Shrestha / The Hive Craft
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -40,8 +43,12 @@ class BP_Area_Override {
 		// Admin assets.
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_scripts' ] );
 
-		// Rate override — priority 20, after free-delivery product override (priority 10).
-		add_filter( 'woocommerce_package_rates', [ $this, 'apply_area_override' ], 20, 2 );
+		// Single authoritative rate override. This is the ONLY woocommerce_package_rates
+		// callback in the plugin — it delegates to BP_Delivery_Charge_Resolver, which
+		// applies the full precedence (product free delivery → product free area →
+		// area override → default) in one pass. Splitting this across two filters is
+		// what caused the earlier clobber bug (the later filter overwrote the earlier).
+		add_filter( 'woocommerce_package_rates', [ $this, 'apply_delivery_charge' ], 20, 2 );
 	}
 
 	/* ------------------------------------------------------------------
@@ -236,7 +243,10 @@ class BP_Area_Override {
 	 * ------------------------------------------------------------------ */
 
 	/**
-	 * Applies the first matching enabled area rule to the Upaya Cargo rate.
+	 * Resolves and applies the delivery charge to the Upaya Cargo rate(s).
+	 *
+	 * Delegates the whole precedence decision to BP_Delivery_Charge_Resolver so
+	 * the frontend and the admin manual-order path share one implementation.
 	 *
 	 * Area is read from $package['destination']['city'], which holds the
 	 * billing_city value written by Upaya's checkout JS when the customer
@@ -247,69 +257,34 @@ class BP_Area_Override {
 	 * @param  array              $package WooCommerce shipping package.
 	 * @return WC_Shipping_Rate[]
 	 */
-	public function apply_area_override( array $rates, array $package ): array {
+	public function apply_delivery_charge( array $rates, array $package ): array {
 		// billing_city = area name (e.g. "Kathmandu-Naya Baneshwor-Kathmandu").
-		$city  = $package['destination']['city'] ?? '';
-		$rules = get_option( self::OPTION_KEY, [] );
-		if ( ! is_array( $rules ) ) {
-			$rules = [];
+		$area = (string) ( $package['destination']['city'] ?? '' );
+
+		// Normalise package contents to the resolver's item shape.
+		$items = [];
+		foreach ( (array) ( $package['contents'] ?? [] ) as $line ) {
+			$items[] = [
+				'product_id'   => (int) ( $line['product_id'] ?? 0 ),
+				'variation_id' => (int) ( $line['variation_id'] ?? 0 ),
+			];
 		}
 
-		// 1) Area-based rules — first enabled match wins (only when we have a city).
-		if ( '' !== $city ) {
-			foreach ( $rules as $rule ) {
-				if ( empty( $rule['enabled'] ) ) {
-					continue;
-				}
-
-				$area_name = $rule['area_name'] ?? '';
-				if ( '' === $area_name ) {
-					continue;
-				}
-
-				$matched = false;
-				if ( 'exact' === $rule['match_type'] ) {
-					$matched = 0 === strcasecmp( $city, $area_name );
-				} else {
-					// 'contains' — case-insensitive substring match.
-					$matched = false !== stripos( $city, $area_name );
-				}
-
-				if ( ! $matched ) {
-					continue;
-				}
-
-				// Apply this rule to every Upaya Cargo rate in the package.
-				foreach ( $rates as $rate_id => $rate ) {
-					if ( false === strpos( $rate_id, 'upaya_cargo' ) ) {
-						continue;
-					}
-					$rate->cost  = (float) ( $rule['override_price'] ?? 0 );
-					$rate->taxes = []; // Clear any shipping tax calculated on the old cost.
-					if ( ! empty( $rule['label'] ) ) {
-						$rate->label = $rule['label'];
-					}
-					$rates[ $rate_id ] = $rate;
-				}
-
-				// First matching rule wins; the default override does not apply.
-				return $rates;
-			}
+		$result = BP_Delivery_Charge_Resolver::resolve( $items, $area );
+		if ( null === $result ) {
+			return $rates; // Nothing applies — leave the Upaya-calculated rate.
 		}
 
-		// 2) No area rule matched — apply the Default Delivery Charge Override when
-		// one is set. '' = unset (fall through to the Upaya charge); '0' is a valid
-		// free-delivery value and must be honoured, hence the explicit '' check.
-		$default = get_option( self::DEFAULT_OPTION_KEY, '' );
-		if ( '' !== $default && is_numeric( $default ) ) {
-			foreach ( $rates as $rate_id => $rate ) {
-				if ( false === strpos( $rate_id, 'upaya_cargo' ) ) {
-					continue;
-				}
-				$rate->cost  = (float) $default;
-				$rate->taxes = []; // Clear any shipping tax calculated on the old cost.
-				$rates[ $rate_id ] = $rate;
+		foreach ( $rates as $rate_id => $rate ) {
+			if ( false === strpos( $rate_id, 'upaya_cargo' ) ) {
+				continue;
 			}
+			$rate->cost  = (float) $result['charge'];
+			$rate->taxes = []; // Clear any shipping tax calculated on the old cost.
+			if ( null !== $result['label'] ) {
+				$rate->label = $result['label'];
+			}
+			$rates[ $rate_id ] = $rate;
 		}
 
 		return $rates;

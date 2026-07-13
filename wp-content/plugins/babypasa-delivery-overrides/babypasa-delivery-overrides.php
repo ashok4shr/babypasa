@@ -32,6 +32,8 @@ function bp_delivery_overrides_boot() {
 		return;
 	}
 
+	// Canonical resolver first — the two contexts below both depend on it.
+	require_once BP_DELIVERY_OVERRIDES_DIR . 'includes/class-delivery-charge-resolver.php';
 	require_once BP_DELIVERY_OVERRIDES_DIR . 'includes/class-free-delivery-product.php';
 	require_once BP_DELIVERY_OVERRIDES_DIR . 'includes/class-area-override.php';
 	require_once BP_DELIVERY_OVERRIDES_DIR . 'includes/class-order-tracking-account.php';
