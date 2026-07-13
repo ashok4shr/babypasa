@@ -16,9 +16,19 @@ class BP_Admin_Shipping_Calc {
 	/** Default item weight fallback when a product has no weight set (kg). */
 	const DEFAULT_WEIGHT = 0.5;
 
+	/** Order meta flag marking an order whose delivery charge we manage. */
+	const MANAGED_META = '_bp_delivery_charge_managed';
+
 	public function __construct() {
 		add_action( 'wp_ajax_bp_aoe_calc_shipping',  [ $this, 'ajax_calc'  ] );
 		add_action( 'wp_ajax_bp_aoe_apply_shipping', [ $this, 'ajax_apply' ] );
+
+		// Re-resolve the delivery charge at save time from the order's FINAL items
+		// + area, so the persisted charge is always correct even if the live JS
+		// preview didn't re-run (e.g. a product was added after the area was set).
+		// Priority 50 runs after the address form save (10) and WC core save (40),
+		// so the billing/shipping area is already persisted when we read it.
+		add_action( 'woocommerce_process_shop_order_meta', [ $this, 'enforce_delivery_charge_on_save' ], 50 );
 	}
 
 	/* ------------------------------------------------------------------
@@ -125,6 +135,10 @@ class BP_Admin_Shipping_Calc {
 		$shipping_item->set_total( $rate );
 		$order->add_item( $shipping_item );
 
+		// Mark this order as delivery-charge-managed so the save-time enforcement
+		// re-resolves it against the final items + area.
+		$order->update_meta_data( self::MANAGED_META, '1' );
+
 		$order->calculate_totals();
 		$order->save();
 
@@ -132,6 +146,76 @@ class BP_Admin_Shipping_Calc {
 			'rate'        => $rate,
 			'order_total' => wc_price( $order->get_total() ),
 		] );
+	}
+
+	/* ------------------------------------------------------------------
+	 * Save-time enforcement
+	 * ------------------------------------------------------------------ */
+
+	/**
+	 * Re-resolves the delivery charge from the order's final items + area on save
+	 * and corrects the existing Upaya Cargo shipping line. Runs only for orders we
+	 * manage (MANAGED_META set by ajax_apply), so unrelated/legacy orders are never
+	 * touched. Uses the shared resolver — identical precedence to the frontend.
+	 *
+	 * @param int $order_id WC order ID.
+	 */
+	public function enforce_delivery_charge_on_save( $order_id ): void {
+		if ( ! function_exists( 'babypasa_resolve_delivery_charge' ) ) {
+			return; // Delivery-overrides plugin inactive.
+		}
+
+		$order = wc_get_order( $order_id );
+		if ( ! $order || '1' !== (string) $order->get_meta( self::MANAGED_META ) ) {
+			return;
+		}
+
+		// Only adjust an existing Upaya Cargo shipping line; never create one here.
+		$shipping_item = null;
+		foreach ( $order->get_shipping_methods() as $item ) {
+			if ( 'upaya_cargo' === $item->get_method_id() ) {
+				$shipping_item = $item;
+				break;
+			}
+		}
+		if ( ! $shipping_item ) {
+			return;
+		}
+
+		// Resolve area: prefer shipping city, fall back to billing (mirrors the
+		// frontend's current_destination_district precedence).
+		$area = (string) $order->get_shipping_city();
+		if ( '' === $area ) {
+			$area = (string) $order->get_billing_city();
+		}
+
+		$items = [];
+		foreach ( $order->get_items() as $item ) {
+			/** @var WC_Order_Item_Product $item */
+			$items[] = [
+				'product_id'   => (int) $item->get_product_id(),
+				'variation_id' => (int) $item->get_variation_id(),
+			];
+		}
+
+		$result = babypasa_resolve_delivery_charge( $items, $area );
+		if ( null === $result ) {
+			return; // Nothing applies — leave the last-applied Upaya rate.
+		}
+
+		$new_total = (float) $result['charge'];
+		if ( (float) $shipping_item->get_total() === $new_total ) {
+			return; // Already correct — avoid a redundant recalc/save.
+		}
+
+		$shipping_item->set_total( $new_total );
+		if ( null !== $result['label'] && '' !== $result['label'] ) {
+			$shipping_item->set_method_title( $result['label'] );
+		}
+		$shipping_item->save();
+
+		$order->calculate_totals();
+		$order->save();
 	}
 
 	/* ------------------------------------------------------------------
