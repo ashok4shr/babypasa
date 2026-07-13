@@ -16,9 +16,24 @@ class BP_Admin_Shipping_Calc {
 	/** Default item weight fallback when a product has no weight set (kg). */
 	const DEFAULT_WEIGHT = 0.5;
 
+	/** Order meta flag marking an order whose delivery charge we manage. */
+	const MANAGED_META = '_bp_delivery_charge_managed';
+
 	public function __construct() {
 		add_action( 'wp_ajax_bp_aoe_calc_shipping',  [ $this, 'ajax_calc'  ] );
 		add_action( 'wp_ajax_bp_aoe_apply_shipping', [ $this, 'ajax_apply' ] );
+
+		// Re-resolve the delivery charge from the order's FINAL items + area, so the
+		// persisted charge is always correct even if the live JS preview didn't run.
+		//
+		//  - woocommerce_process_shop_order_meta (full "Update order" save, prio 50):
+		//    runs after the address form save (10) and WC core save (40), so the
+		//    billing/shipping area is persisted and area-based rules resolve correctly.
+		//  - woocommerce_saved_order_items (the items-box "Recalculate" and "Save"
+		//    buttons both route through wc_save_order_items): lets a free-delivery
+		//    product zero the charge without a full order save.
+		add_action( 'woocommerce_process_shop_order_meta', [ $this, 'enforce_delivery_charge_on_save' ], 50 );
+		add_action( 'woocommerce_saved_order_items',        [ $this, 'enforce_on_saved_items' ], 20, 2 );
 	}
 
 	/* ------------------------------------------------------------------
@@ -125,6 +140,10 @@ class BP_Admin_Shipping_Calc {
 		$shipping_item->set_total( $rate );
 		$order->add_item( $shipping_item );
 
+		// Mark this order as delivery-charge-managed so the save-time enforcement
+		// re-resolves it against the final items + area.
+		$order->update_meta_data( self::MANAGED_META, '1' );
+
 		$order->calculate_totals();
 		$order->save();
 
@@ -135,103 +154,151 @@ class BP_Admin_Shipping_Calc {
 	}
 
 	/* ------------------------------------------------------------------
+	 * Save-time enforcement
+	 * ------------------------------------------------------------------ */
+
+	/**
+	 * Full "Update order" save handler (woocommerce_process_shop_order_meta).
+	 *
+	 * @param int $order_id WC order ID.
+	 */
+	public function enforce_delivery_charge_on_save( $order_id ): void {
+		$this->maybe_enforce( (int) $order_id );
+	}
+
+	/**
+	 * Items-box "Recalculate" / "Save" handler (woocommerce_saved_order_items).
+	 *
+	 * @param int   $order_id WC order ID.
+	 * @param array $items    Posted items (unused; we read the saved order).
+	 */
+	public function enforce_on_saved_items( $order_id, $items = [] ): void {
+		$this->maybe_enforce( (int) $order_id );
+	}
+
+	/**
+	 * Re-resolves the delivery charge from the order's final items + area and
+	 * corrects the existing Upaya Cargo shipping line. Runs only for orders we
+	 * manage (MANAGED_META set by ajax_apply), so unrelated/legacy orders are never
+	 * touched. Uses the shared resolver — identical precedence to the frontend.
+	 *
+	 * Area-safety: on an unsaved draft the order's billing/shipping city is not yet
+	 * persisted (the area lives only in the live form), so we apply only the
+	 * area-independent free-delivery flag and leave any area/default charge alone —
+	 * never clobbering the value the live preview already applied.
+	 *
+	 * @param int $order_id WC order ID.
+	 */
+	private function maybe_enforce( int $order_id ): void {
+		if ( ! function_exists( 'babypasa_resolve_delivery_charge' ) ) {
+			return; // Delivery-overrides plugin inactive.
+		}
+
+		$order = wc_get_order( $order_id );
+		if ( ! $order || '1' !== (string) $order->get_meta( self::MANAGED_META ) ) {
+			return;
+		}
+
+		// Only adjust an existing Upaya Cargo shipping line; never create one here.
+		$shipping_item = null;
+		foreach ( $order->get_shipping_methods() as $item ) {
+			if ( 'upaya_cargo' === $item->get_method_id() ) {
+				$shipping_item = $item;
+				break;
+			}
+		}
+		if ( ! $shipping_item ) {
+			return;
+		}
+
+		// Resolve area: prefer shipping city, fall back to billing (mirrors the
+		// frontend's current_destination_district precedence).
+		$area = (string) $order->get_shipping_city();
+		if ( '' === $area ) {
+			$area = (string) $order->get_billing_city();
+		}
+
+		$items = [];
+		foreach ( $order->get_items() as $item ) {
+			/** @var WC_Order_Item_Product $item */
+			$items[] = [
+				'product_id'   => (int) $item->get_product_id(),
+				'variation_id' => (int) $item->get_variation_id(),
+			];
+		}
+
+		$result = babypasa_resolve_delivery_charge( $items, $area );
+		if ( null === $result ) {
+			return; // Nothing applies — leave the last-applied Upaya rate.
+		}
+
+		// No persisted area yet → trust only the area-independent free flag.
+		if ( '' === $area && 'free_product' !== $result['reason'] ) {
+			return;
+		}
+
+		$new_total = (float) $result['charge'];
+		if ( (float) $shipping_item->get_total() === $new_total ) {
+			return; // Already correct — avoid a redundant recalc/save.
+		}
+
+		$shipping_item->set_total( $new_total );
+		if ( null !== $result['label'] && '' !== $result['label'] ) {
+			$shipping_item->set_method_title( $result['label'] );
+		}
+		$shipping_item->save();
+
+		$order->calculate_totals();
+		$order->save();
+	}
+
+	/* ------------------------------------------------------------------
 	 * Private helpers
 	 * ------------------------------------------------------------------ */
 
 	/**
-	 * Applies delivery overrides to a raw Upaya rate, mirroring the two
-	 * woocommerce_package_rates filters from babypasa-delivery-overrides:
+	 * Applies delivery overrides to a raw Upaya rate by delegating to the SAME
+	 * resolver the frontend uses (babypasa_resolve_delivery_charge), so the admin
+	 * manual-order charge is guaranteed identical to checkout. The full precedence
+	 * (product free delivery → product free area → area override → default) lives
+	 * in BP_Delivery_Charge_Resolver.
 	 *
-	 *  priority 10 — BP_Free_Delivery_Product: zero rate if ANY item is free-delivery
-	 *  priority 20 — BP_Area_Override: apply first matching area rule
+	 * Falls back to the raw Upaya rate if the delivery-overrides plugin is inactive
+	 * (the resolver function is then undefined) — never fatals.
 	 *
 	 * @param  float  $rate     Raw Upaya rate in Rs.
 	 * @param  string $label    Current rate label.
-	 * @param  string $area     Area name (billing_city).
+	 * @param  string $area     Area name (the Upaya area selected in the admin form).
 	 * @param  int    $order_id WC order ID.
 	 * @return array{float, string}  [ adjusted_rate, label ]
 	 */
 	private function apply_overrides( float $rate, string $label, string $area, int $order_id ): array {
-		// Priority 10 — free delivery product flag.
-		if ( $this->any_item_free_delivery( $order_id ) ) {
-			return [ 0.0, __( 'Free Delivery', 'babypasa-aoe' ) ];
+		if ( ! function_exists( 'babypasa_resolve_delivery_charge' ) ) {
+			return [ $rate, $label ]; // Delivery-overrides plugin inactive — leave raw Upaya rate.
 		}
 
-		// Priority 20 — area-based override.
-		$area_result = $this->get_area_override( $area );
-		if ( null !== $area_result ) {
-			return [ $area_result['price'], $area_result['label'] ?: $label ];
-		}
-
-		return [ $rate, $label ];
-	}
-
-	/**
-	 * Returns true when AT LEAST ONE item in the order has _bp_free_delivery = 'yes'.
-	 * Checks variation ID first, then falls back to parent product ID, exactly
-	 * as BP_Free_Delivery_Product::override_rate_if_any_free() does.
-	 */
-	private function any_item_free_delivery( int $order_id ): bool {
 		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
-			return false;
-		}
-
-		foreach ( $order->get_items() as $item ) {
-			/** @var WC_Order_Item_Product $item */
-			$variation_id = (int) $item->get_variation_id();
-			$product_id   = (int) $item->get_product_id();
-			$check_id     = $variation_id ?: $product_id;
-
-			if ( 'yes' === get_post_meta( $check_id, '_bp_free_delivery', true ) ||
-				'yes' === get_post_meta( $product_id, '_bp_free_delivery', true ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Returns the first matching enabled area override rule for the given area
-	 * name, or null if none match. Mirrors BP_Area_Override::apply_area_override().
-	 *
-	 * @param  string $area Area name (billing_city).
-	 * @return array{price:float,label:string}|null
-	 */
-	private function get_area_override( string $area ): ?array {
-		if ( '' === $area ) {
-			return null;
-		}
-
-		$rules = get_option( 'bp_area_delivery_overrides', [] );
-		if ( empty( $rules ) || ! is_array( $rules ) ) {
-			return null;
-		}
-
-		foreach ( $rules as $rule ) {
-			if ( empty( $rule['enabled'] ) ) {
-				continue;
-			}
-
-			$rule_area = $rule['area_name'] ?? '';
-			if ( '' === $rule_area ) {
-				continue;
-			}
-
-			$matched = ( 'exact' === $rule['match_type'] )
-				? ( 0 === strcasecmp( $area, $rule_area ) )
-				: ( false !== stripos( $area, $rule_area ) );
-
-			if ( $matched ) {
-				return [
-					'price' => (float) ( $rule['override_price'] ?? 0 ),
-					'label' => sanitize_text_field( $rule['label'] ?? '' ),
+		$items = [];
+		if ( $order ) {
+			foreach ( $order->get_items() as $item ) {
+				/** @var WC_Order_Item_Product $item */
+				$items[] = [
+					'product_id'   => (int) $item->get_product_id(),
+					'variation_id' => (int) $item->get_variation_id(),
 				];
 			}
 		}
 
-		return null;
+		$result = babypasa_resolve_delivery_charge( $items, $area );
+		if ( null === $result ) {
+			return [ $rate, $label ]; // Nothing applies — leave raw Upaya rate.
+		}
+
+		$resolved_label = ( null !== $result['label'] && '' !== $result['label'] )
+			? $result['label']
+			: $label;
+
+		return [ (float) $result['charge'], $resolved_label ];
 	}
 
 	/**

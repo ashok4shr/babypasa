@@ -22,6 +22,11 @@
 	var cachedRate   = null;
 	var DEBOUNCE_MS  = 600;
 
+	// Order-items recalc state.
+	var recalcTimer          = null;
+	var suppressItemsRecalc  = false; // true while WE reload the items box (avoid self-trigger).
+	var lastItemsSignature   = null;  // product-line signature; changes only on real item edits.
+
 	// ── Init ─────────────────────────────────────────────────────────────────
 	$( document ).ready( function () {
 		defaultStatusToProcessing();
@@ -29,6 +34,7 @@
 		bindAddressEvents();
 		bindPaymentStatusEvents();
 		bindCustomerSelect();
+		bindOrderItemsRecalc();
 
 		// If area already selected on page load (editing existing order), show rate.
 		var $hubArea = $( SEL_HUB_AREA );
@@ -150,6 +156,67 @@
 		} );
 	}
 
+	// ── Recalculate rate when order items change ──────────────────────────────
+	// The delivery charge depends on which products are in the order (free-delivery
+	// flag / free areas). WooCommerce only recalculated on area change before, so a
+	// product added after the area was chosen left a stale charge. We re-run the
+	// calc whenever the product line-items change (add/remove/qty).
+
+	/**
+	 * Signature of the current product line-items (order_item_id + qty). Stable
+	 * across our own shipping-row reload (which changes only the shipping line),
+	 * so it lets us ignore self-triggered mutations and avoid a loop.
+	 */
+	function currentItemsSignature() {
+		var parts = [];
+		$( '#woocommerce-order-items' ).find( 'tbody.woocommerce_order_items tr.item' ).each( function () {
+			var $row = $( this );
+			var id   = $row.attr( 'data-order_item_id' ) || '';
+			var $qty = $row.find( 'input.quantity' );
+			var qty  = $qty.length ? $qty.val() : $.trim( $row.find( '.quantity .view' ).text() ).replace( /[^\d.]/g, '' );
+			parts.push( id + ':' + qty );
+		} );
+		return parts.join( '|' );
+	}
+
+	function maybeRecalcFromItems() {
+		if ( suppressItemsRecalc ) {
+			return;
+		}
+		var area = $( SEL_HUB_AREA ).val();
+		if ( ! area ) {
+			return; // No area chosen yet — nothing to recalc against.
+		}
+		var sig = currentItemsSignature();
+		if ( sig === lastItemsSignature ) {
+			return; // No product-line change (e.g. our own shipping reload).
+		}
+		lastItemsSignature = sig;
+
+		clearTimeout( recalcTimer );
+		$( SEL_RATE_ROW ).show();
+		$( SEL_RATE_LABEL ).text( bpAoe.i18n.calculating );
+		cachedRate = null;
+		recalcTimer = setTimeout( function () {
+			fetchRate( area );
+		}, DEBOUNCE_MS );
+	}
+
+	function bindOrderItemsRecalc() {
+		lastItemsSignature = currentItemsSignature();
+
+		// WC fires this on its own items box after add/save/delete/qty reloads.
+		$( '#woocommerce-order-items' ).on( 'wc_order_items_reloaded', maybeRecalcFromItems );
+
+		// Fallback: catch item changes WC applies without firing that event.
+		var box = document.getElementById( 'woocommerce-order-items' );
+		if ( box && typeof MutationObserver !== 'undefined' ) {
+			new MutationObserver( function () {
+				maybeRecalcFromItems();
+			} ).observe( box, { childList: true, subtree: true } );
+		}
+	}
+
 	// ── Shipping rate calculation ────────────────────────────────────────────
 	function fetchRate( hubArea ) {
 		var orderId = getOrderId();
@@ -229,9 +296,18 @@
 			data:   data,
 			success: function ( response ) {
 				if ( response ) {
+					// Suppress the items-recalc observer while we swap in the new
+					// HTML (only the shipping row changed, not the products).
+					suppressItemsRecalc = true;
 					$( '#woocommerce-order-items' ).find( '.inside' ).html( response );
 					// Re-init any WC JS components inside the refreshed HTML.
 					$( document.body ).trigger( 'wc-enhanced-select-init' );
+					// Product lines are unchanged; refresh the baseline signature and
+					// release the guard after the mutation callbacks have flushed.
+					lastItemsSignature = currentItemsSignature();
+					setTimeout( function () {
+						suppressItemsRecalc = false;
+					}, 50 );
 				}
 			},
 		} );
@@ -251,12 +327,20 @@
 
 	// ── Utility ──────────────────────────────────────────────────────────────
 	function getOrderId() {
-		// Legacy orders: post ID in URL or hidden input.
-		var $postId = $( '#post_ID' );
-		if ( $postId.length ) {
-			return parseInt( $postId.val(), 10 ) || 0;
+		// Canonical source — WC localises the current order ID here on both the
+		// legacy and HPOS order screens (present even on the new-order screen).
+		if ( typeof woocommerce_admin_meta_boxes !== 'undefined' && woocommerce_admin_meta_boxes.post_id ) {
+			var wcId = parseInt( woocommerce_admin_meta_boxes.post_id, 10 );
+			if ( wcId ) {
+				return wcId;
+			}
 		}
-		// HPOS: read from URL param.
+		// Legacy fallback: post ID hidden input.
+		var $postId = $( '#post_ID' );
+		if ( $postId.length && parseInt( $postId.val(), 10 ) ) {
+			return parseInt( $postId.val(), 10 );
+		}
+		// HPOS fallback: read from URL param.
 		var match = window.location.search.match( /[?&]id=(\d+)/ );
 		return match ? parseInt( match[1], 10 ) : 0;
 	}
