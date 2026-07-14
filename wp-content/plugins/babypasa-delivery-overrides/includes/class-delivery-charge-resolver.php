@@ -32,12 +32,15 @@ class BP_Delivery_Charge_Resolver {
 	 *
 	 * @param array  $items Array of items, each ['product_id'=>int, 'variation_id'=>int].
 	 * @param string $area  Full Upaya area name (billing_city, e.g. "Kathmandu-Naya Baneshwor-Kathmandu").
+	 * @param string $hub   Upaya hub name (billing_state, e.g. "Kathmandu Hub"). Optional;
+	 *                      derived from the area via Upaya's cache when empty.
 	 * @return array{charge:float,label:?string,reason:string}|null
 	 *         Null = no override applies (leave the Upaya rate). Otherwise the
 	 *         resolved charge; 'label' is null when the label should be left as-is.
 	 */
-	public static function resolve( array $items, string $area ): ?array {
+	public static function resolve( array $items, string $area, string $hub = '' ): ?array {
 		// 1 + 2) Product free-everywhere flag, or product free-in-area match.
+		// Free delivery is intentionally area-only — a hub match must NOT grant it.
 		if ( self::any_item_qualifies_free( $items, $area ) ) {
 			return [
 				'charge' => 0.0,
@@ -46,8 +49,15 @@ class BP_Delivery_Charge_Resolver {
 			];
 		}
 
-		// 3) Area-based override rule.
-		$rule = self::area_override_rule( $area );
+		// Hub comes from billing/shipping state in both contexts; when it is empty
+		// (legacy orders, or the state field wasn't captured) derive it from the
+		// area via Upaya's cached location tree so hub rules still apply.
+		if ( '' === $hub ) {
+			$hub = self::hub_from_area( $area );
+		}
+
+		// 3) Area-based override rule — matched against area OR hub.
+		$rule = self::area_override_rule( $area, $hub );
 		if ( null !== $rule ) {
 			return [
 				'charge' => (float) ( $rule['override_price'] ?? 0 ),
@@ -119,13 +129,21 @@ class BP_Delivery_Charge_Resolver {
 	 * ------------------------------------------------------------------ */
 
 	/**
-	 * Returns the first enabled Area-Based rule matching $area, or null.
+	 * Returns the first enabled Area-Based rule matching the area or the hub, or null.
+	 *
+	 * Two passes, so a specific area match beats a broader hub match: pass 1 tries
+	 * to match each rule's keyword against the AREA; only if none match does pass 2
+	 * try the HUB. Within a pass the first enabled rule wins. A rule that matches
+	 * both area and hub is still returned once (no double charge). Each rule keeps
+	 * its own match_type (contains/exact) — note that 'exact' rarely matches a hub,
+	 * since hubs are named e.g. "Kathmandu Hub"; use 'contains' for hub keywords.
 	 *
 	 * @param string $area Full Upaya area name (billing_city).
+	 * @param string $hub  Upaya hub name (billing_state). May be empty.
 	 * @return array{enabled:string,area_name:string,match_type:string,override_price:string,label:string}|null
 	 */
-	public static function area_override_rule( string $area ): ?array {
-		if ( '' === $area ) {
+	public static function area_override_rule( string $area, string $hub = '' ): ?array {
+		if ( '' === $area && '' === $hub ) {
 			return null;
 		}
 
@@ -134,25 +152,69 @@ class BP_Delivery_Charge_Resolver {
 			return null;
 		}
 
-		foreach ( $rules as $rule ) {
-			if ( empty( $rule['enabled'] ) ) {
+		// Pass 1: area (more specific). Pass 2: hub (broader).
+		foreach ( [ $area, $hub ] as $subject ) {
+			if ( '' === $subject ) {
 				continue;
 			}
-			$area_name = $rule['area_name'] ?? '';
-			if ( '' === $area_name ) {
-				continue;
-			}
-
-			$matched = ( 'exact' === ( $rule['match_type'] ?? 'contains' ) )
-				? ( 0 === strcasecmp( $area, $area_name ) )
-				: ( false !== stripos( $area, $area_name ) );
-
-			if ( $matched ) {
-				return $rule;
+			foreach ( $rules as $rule ) {
+				if ( empty( $rule['enabled'] ) ) {
+					continue;
+				}
+				$keyword = $rule['area_name'] ?? '';
+				if ( '' === $keyword ) {
+					continue;
+				}
+				if ( self::keyword_matches( $subject, $keyword, $rule['match_type'] ?? 'contains' ) ) {
+					return $rule;
+				}
 			}
 		}
 
 		return null;
+	}
+
+	/**
+	 * Case-insensitive rule-keyword match against a subject (area or hub).
+	 *
+	 * @param string $subject    The value being tested (area or hub name).
+	 * @param string $keyword    The rule's configured keyword.
+	 * @param string $match_type 'exact' or 'contains'.
+	 * @return bool
+	 */
+	private static function keyword_matches( string $subject, string $keyword, string $match_type ): bool {
+		if ( 'exact' === $match_type ) {
+			return 0 === strcasecmp( $subject, $keyword );
+		}
+		return false !== stripos( $subject, $keyword );
+	}
+
+	/**
+	 * Derives the Upaya hub name for an area from the cached location tree
+	 * (upaya_raw_cities_cache: each city carries one hubName and a list of areas).
+	 * Read-only — never triggers an API call. Returns '' when the cache is cold or
+	 * the area is unknown, in which case hub matching is simply skipped.
+	 *
+	 * @param string $area Full Upaya area name.
+	 * @return string Hub name, or ''.
+	 */
+	public static function hub_from_area( string $area ): string {
+		$area = trim( $area );
+		if ( '' === $area ) {
+			return '';
+		}
+		$cities = get_transient( 'upaya_raw_cities_cache' );
+		if ( ! is_array( $cities ) ) {
+			return '';
+		}
+		foreach ( $cities as $city ) {
+			foreach ( $city['areas'] ?? [] as $a ) {
+				if ( isset( $a['name'] ) && 0 === strcasecmp( (string) $a['name'], $area ) ) {
+					return (string) ( $city['hubName'] ?? '' );
+				}
+			}
+		}
+		return '';
 	}
 
 	/**
@@ -259,10 +321,11 @@ class BP_Delivery_Charge_Resolver {
  *
  * @param array  $items Items as ['product_id'=>int, 'variation_id'=>int].
  * @param string $area  Full Upaya area name (billing_city).
+ * @param string $hub   Upaya hub name (billing_state). Optional.
  * @return array{charge:float,label:?string,reason:string}|null
  */
 if ( ! function_exists( 'babypasa_resolve_delivery_charge' ) ) {
-	function babypasa_resolve_delivery_charge( array $items, string $area ): ?array {
-		return BP_Delivery_Charge_Resolver::resolve( $items, $area );
+	function babypasa_resolve_delivery_charge( array $items, string $area, string $hub = '' ): ?array {
+		return BP_Delivery_Charge_Resolver::resolve( $items, $area, $hub );
 	}
 }

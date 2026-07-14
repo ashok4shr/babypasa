@@ -258,8 +258,11 @@ class BP_Area_Override {
 	 * @return WC_Shipping_Rate[]
 	 */
 	public function apply_delivery_charge( array $rates, array $package ): array {
-		// billing_city = area name (e.g. "Kathmandu-Naya Baneshwor-Kathmandu").
+		// billing_city = area name (e.g. "Kathmandu-Naya Baneshwor-Kathmandu");
+		// billing_state = hub name (e.g. "Kathmandu Hub"). Both are written by the
+		// Upaya checkout JS from the combined Hub+Area select.
 		$area = (string) ( $package['destination']['city'] ?? '' );
+		$hub  = (string) ( $package['destination']['state'] ?? '' );
 
 		// Normalise package contents to the resolver's item shape.
 		$items = [];
@@ -270,7 +273,7 @@ class BP_Area_Override {
 			];
 		}
 
-		$result = BP_Delivery_Charge_Resolver::resolve( $items, $area );
+		$result = BP_Delivery_Charge_Resolver::resolve( $items, $area, $hub );
 		if ( null === $result ) {
 			return $rates; // Nothing applies — leave the Upaya-calculated rate.
 		}

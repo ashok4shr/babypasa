@@ -55,6 +55,7 @@ class BP_Admin_Shipping_Calc {
 		}
 
 		$parts = explode( '||', $hub_area, 2 );
+		$hub   = $parts[0] ?? '';
 		$area  = $parts[1] ?? '';
 
 		// Use Upaya's own classes — identical auth and request logic as checkout.
@@ -97,7 +98,7 @@ class BP_Admin_Shipping_Calc {
 		$label = 'Upaya Cargo';
 
 		// Apply delivery overrides in the same order as the frontend filters.
-		[ $rate, $label ] = $this->apply_overrides( $rate, $label, $area, $order_id );
+		[ $rate, $label ] = $this->apply_overrides( $rate, $label, $area, $hub, $order_id );
 
 		wp_send_json_success( [
 			'rate'  => $rate,
@@ -211,11 +212,14 @@ class BP_Admin_Shipping_Calc {
 			return;
 		}
 
-		// Resolve area: prefer shipping city, fall back to billing (mirrors the
-		// frontend's current_destination_district precedence).
+		// Resolve area + hub: prefer shipping, fall back to billing (mirrors the
+		// frontend). Hub lives in the state field; the resolver derives it from the
+		// area when empty.
 		$area = (string) $order->get_shipping_city();
+		$hub  = (string) $order->get_shipping_state();
 		if ( '' === $area ) {
 			$area = (string) $order->get_billing_city();
+			$hub  = (string) $order->get_billing_state();
 		}
 
 		$items = [];
@@ -227,7 +231,7 @@ class BP_Admin_Shipping_Calc {
 			];
 		}
 
-		$result = babypasa_resolve_delivery_charge( $items, $area );
+		$result = babypasa_resolve_delivery_charge( $items, $area, $hub );
 		if ( null === $result ) {
 			return; // Nothing applies — leave the last-applied Upaya rate.
 		}
@@ -269,10 +273,11 @@ class BP_Admin_Shipping_Calc {
 	 * @param  float  $rate     Raw Upaya rate in Rs.
 	 * @param  string $label    Current rate label.
 	 * @param  string $area     Area name (the Upaya area selected in the admin form).
+	 * @param  string $hub      Hub name (the Upaya hub of the selected area).
 	 * @param  int    $order_id WC order ID.
 	 * @return array{float, string}  [ adjusted_rate, label ]
 	 */
-	private function apply_overrides( float $rate, string $label, string $area, int $order_id ): array {
+	private function apply_overrides( float $rate, string $label, string $area, string $hub, int $order_id ): array {
 		if ( ! function_exists( 'babypasa_resolve_delivery_charge' ) ) {
 			return [ $rate, $label ]; // Delivery-overrides plugin inactive — leave raw Upaya rate.
 		}
@@ -289,7 +294,7 @@ class BP_Admin_Shipping_Calc {
 			}
 		}
 
-		$result = babypasa_resolve_delivery_charge( $items, $area );
+		$result = babypasa_resolve_delivery_charge( $items, $area, $hub );
 		if ( null === $result ) {
 			return [ $rate, $label ]; // Nothing applies — leave raw Upaya rate.
 		}
