@@ -127,6 +127,22 @@ class UPAYA_Webhook_Processor {
 		'DELIVERED'        => 5,
 	];
 
+	/**
+	 * Upaya statuses that re-open the "Out for Delivery" journey email (E11).
+	 *
+	 * A failed delivery sends the parcel back to the hub to be dispatched again,
+	 * so the forward-only email gate must be rewound below OUT_FOR_DELIVERY —
+	 * otherwise the re-dispatch cannot re-send E11 (the gate still holds the
+	 * already-claimed rank). See maybe_rearm_out_for_delivery_email().
+	 *
+	 * NOTE: This constant was added directly inside the plugin.
+	 * Re-apply it after any upaya-cargo-woocommerce plugin update.
+	 *
+	 * @author Ashok Shrestha / The Hive Craft
+	 * @var string[]
+	 */
+	private const REDELIVERY_RESET_STATUSES = [ 'on-field-failed-delivery' ];
+
 	public function __construct( UPAYA_Logger $logger ) {
 		$this->logger = $logger;
 	}
@@ -219,6 +235,13 @@ class UPAYA_Webhook_Processor {
 		// Meta only (feeds on-site tracking + the E10/E14 handlers). The email
 		// decision is made separately, atomically, below.
 		$this->advance_journey_state( $order, $upaya_status );
+
+		// ── Re-arm the Out-for-Delivery email after a failed delivery ──────
+		// A failed delivery rewinds the forward-only email gate below
+		// OUT_FOR_DELIVERY so the next genuine out-for-delivery webhook re-sends
+		// E11, while duplicate out-for-delivery events in the same cycle still
+		// no-op (rank already re-claimed).
+		$this->maybe_rearm_out_for_delivery_email( $order_id, $upaya_status );
 
 		// ── Send the customer journey email behind an atomic forward-only guard
 		//    (E06/E07/E11/E12). A stale/duplicate/out-of-order webhook can never
@@ -376,6 +399,57 @@ class UPAYA_Webhook_Processor {
 		);
 
 		return ( 1 === (int) $affected );
+	}
+
+	/**
+	 * Rewinds the atomic email gate after a failed delivery so a subsequent
+	 * "Out for Delivery" webhook can re-send E11.
+	 *
+	 * Upaya's failed-delivery status is not a journey status, so it never claims
+	 * an email rank itself. But once OUT_FOR_DELIVERY (rank 4) has been claimed,
+	 * the forward-only gate blocks every later out-for-delivery from re-sending.
+	 * On a failed delivery we atomically lower email_rank from OUT_FOR_DELIVERY
+	 * back to IN_TRANSIT (rank 3) — a single guarded UPDATE, so:
+	 *   - the next real out-for-delivery re-claims rank 4 and re-sends E11;
+	 *   - duplicate out-for-delivery events in the same cycle still no-op;
+	 *   - an already-delivered order (rank 5) is left untouched (the WHERE clause
+	 *     matches OUT_FOR_DELIVERY only), so a stray / out-of-order failed-delivery
+	 *     can never resurrect the journey after delivery.
+	 *
+	 * NOTE: This method was added directly inside the plugin.
+	 * Re-apply it after any upaya-cargo-woocommerce plugin update.
+	 *
+	 * @author Ashok Shrestha / The Hive Craft
+	 *
+	 * @param  int    $order_id     WooCommerce order ID.
+	 * @param  string $upaya_status Upaya status slug.
+	 * @return void
+	 */
+	private function maybe_rearm_out_for_delivery_email( int $order_id, string $upaya_status ): void {
+		if ( ! in_array( $upaya_status, self::REDELIVERY_RESET_STATUSES, true ) ) {
+			return;
+		}
+
+		global $wpdb;
+
+		$table       = $wpdb->prefix . 'upaya_orders';
+		$ofd_rank    = self::JOURNEY_RANKS['OUT_FOR_DELIVERY'];
+		$rewind_rank = self::JOURNEY_RANKS['IN_TRANSIT'];
+
+		$affected = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table} SET email_rank = %d WHERE wc_order_id = %d AND email_rank = %d",
+				$rewind_rank,
+				$order_id,
+				$ofd_rank
+			)
+		);
+
+		if ( 1 === (int) $affected ) {
+			$this->logger->debug(
+				"Upaya webhook: order #{$order_id} failed delivery ('{$upaya_status}') — email gate rewound from OUT_FOR_DELIVERY (rank {$ofd_rank}) to IN_TRANSIT (rank {$rewind_rank}); the next out-for-delivery will re-send E11."
+			);
+		}
 	}
 
 	/**
