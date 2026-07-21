@@ -152,7 +152,7 @@ $bp_steps = array(
 					<?php else : ?>
 					<td width="30" height="30" align="center" valign="middle" style="width:30px;min-width:30px;height:30px;
 					           background:#ffffff;
-					           border:2px solid #fbcfe8;
+					           border:2px solid #ffffff;
 					           border-radius:15px;
 					           font-size:0;line-height:0;">&nbsp;</td>
 					<?php endif; ?>

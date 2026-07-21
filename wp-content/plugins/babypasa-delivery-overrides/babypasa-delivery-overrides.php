@@ -2,7 +2,7 @@
 /**
  * Plugin Name: BabyPasa Delivery Overrides
  * Description: Free-delivery product flag, area-based shipping-cost overrides, and My Account order tracking for BabyPasa. Works on top of Upaya Cargo without modifying it.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Ashok Shrestha
  * Text Domain: babypasa-delivery-overrides
  * Requires Plugins: woocommerce, upaya-cargo-woocommerce
@@ -10,7 +10,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'BP_DELIVERY_OVERRIDES_VERSION', '1.1.0' );
+define( 'BP_DELIVERY_OVERRIDES_VERSION', '1.2.0' );
 define( 'BP_DELIVERY_OVERRIDES_FILE',    __FILE__ );
 define( 'BP_DELIVERY_OVERRIDES_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'BP_DELIVERY_OVERRIDES_URL',     plugin_dir_url( __FILE__ ) );
@@ -38,9 +38,11 @@ function bp_delivery_overrides_boot() {
 	require_once BP_DELIVERY_OVERRIDES_DIR . 'includes/class-area-override.php';
 	require_once BP_DELIVERY_OVERRIDES_DIR . 'includes/class-order-tracking-account.php';
 	require_once BP_DELIVERY_OVERRIDES_DIR . 'includes/class-cart-shipping-display.php';
+	require_once BP_DELIVERY_OVERRIDES_DIR . 'includes/class-payment-status-delivered-sync.php';
 
 	new BP_Free_Delivery_Product();
 	new BP_Area_Override();
 	new BP_Order_Tracking_Account();
 	new BP_Cart_Shipping_Display();
+	new BP_Payment_Status_Delivered_Sync();
 }
