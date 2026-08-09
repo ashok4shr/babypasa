@@ -315,15 +315,22 @@ class BC_Gateway extends WC_Payment_Gateway {
 		$order->update_status( 'pending', __( 'Awaiting ConnectIPS payment.', 'babypasa-connectips' ) );
 		$order->save();
 
-		BC_Logger::info( "Payment initiated for order #{$order_id}.", [
-			'txn_id' => $txn_id,
-			'ref_id' => $ref_id,
-		] );
-
+		// Routed through WooCommerce's own wc-api dispatcher (woocommerce_api_{id}_redirect
+		// action registered in the constructor) so it works under any permalink structure
+		// without a custom rewrite rule — the pretty-path builder below is only wired up
+		// for the success/failure callbacks, not this step.
 		$redirect = add_query_arg(
 			[ 'order_key' => $order->get_order_key() ],
-			$this->get_callback_url( 'redirect' )
+			WC()->api_request_url( self::ID . '_redirect' )
 		);
+
+		BC_Logger::info( "Payment initiated for order #{$order_id}.", [
+			'order_key' => $order->get_order_key(),
+			'txn_id'    => $txn_id,
+			'ref_id'    => $ref_id,
+			'mode'      => 'yes' === $this->get_option( 'enable_test_mode' ) ? 'test' : 'live',
+			'redirect'  => $redirect,
+		] );
 
 		return [
 			'result'   => 'success',
@@ -348,6 +355,11 @@ class BC_Gateway extends WC_Payment_Gateway {
 			BC_Logger::error( 'Redirect handler: order not found.', [ 'order_key' => $order_key ] );
 			wp_die( esc_html__( 'Order not found.', 'babypasa-connectips' ) );
 		}
+
+		BC_Logger::info( "Redirect handler entered for order #{$order->get_id()}.", [
+			'order_key' => $order_key,
+			'mode'      => 'yes' === $this->get_option( 'enable_test_mode' ) ? 'test' : 'live',
+		] );
 
 		// Prevent re-entry on already-paid orders.
 		if ( $order->is_paid() ) {
