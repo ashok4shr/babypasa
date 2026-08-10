@@ -3,7 +3,7 @@
  * Plugin Name: BabyPasa Account Linking
  * Description: Links a guest checkout to an existing customer account when the billing email matches, so the order appears in that customer's My Account history and totals. Links are provisional (billing email is unverified) until an admin confirms ownership; sensitive order actions (cancel, return request, tracking, full address/phone) stay gated until then. Forward-looking at checkout, plus an opt-in WP-CLI backfill for historical guest orders.
  * Version:     1.0.0
- * Author:      Ashok Shrestha / The Hive Craft
+ * Author:      Ashok Shrestha
  * Requires at least: 6.4
  * Requires PHP: 7.4
  * Text Domain: babypasa-account-linking
