@@ -61,9 +61,6 @@ class BP_Order_Cancel {
 		if ( (int) $order->get_customer_id() !== get_current_user_id() ) {
 			return $actions;
 		}
-		if ( class_exists( 'BP_AL_Linker' ) && BP_AL_Linker::is_provisional( $order ) ) {
-			return $actions; // Unconfirmed account-email match — hide Cancel until an admin confirms ownership.
-		}
 		if ( ! $order->has_status( self::CANCELLABLE_WC_STATUSES ) ) {
 			return $actions;
 		}
@@ -145,11 +142,6 @@ class BP_Order_Cancel {
 		// 2) Ownership.
 		$order = wc_get_order( $order_id );
 		if ( ! $order instanceof WC_Order || (int) $order->get_customer_id() !== get_current_user_id() ) {
-			wp_send_json_error( [ 'message' => __( 'This order is not associated with your account.', 'babypasa-returns' ) ] );
-		}
-
-		// Unconfirmed account-email match — re-verify server-side, a hidden button is not a permission check.
-		if ( class_exists( 'BP_AL_Linker' ) && BP_AL_Linker::is_provisional( $order ) ) {
 			wp_send_json_error( [ 'message' => __( 'This order is not associated with your account.', 'babypasa-returns' ) ] );
 		}
 

@@ -5,9 +5,10 @@
  * WP-CLI backfill/unlink commands so eligibility rules, meta flags, and
  * order-note wording can never drift apart between the two paths.
  *
- * The link is always provisional (the billing email at guest checkout is
- * unverified) until an admin confirms it via the order-edit "Order actions"
- * dropdown. HPOS-safe throughout: never touches wp_postmeta directly.
+ * A billing-email match to a non-privileged account is treated as fully
+ * verified immediately — no provisional/confirmation step, no gating of
+ * cancel/return/tracking/address. HPOS-safe throughout: never touches
+ * wp_postmeta directly.
  *
  * @package BabyPasa_Account_Linking
  */
@@ -21,9 +22,6 @@ class BP_AL_Linker {
 
 	/** Order meta: 'checkout' | 'backfill'. */
 	const META_SOURCE = '_bp_link_source';
-
-	/** Order meta: timestamp ownership was confirmed (absent while provisional). */
-	const META_CONFIRMED = '_bp_link_confirmed';
 
 	const SOURCE_CHECKOUT = 'checkout';
 	const SOURCE_BACKFILL = 'backfill';
@@ -101,47 +99,10 @@ class BP_AL_Linker {
 
 		return sprintf(
 			/* translators: 1: linked customer account id, 2: customer account email */
-			__( 'Order linked to customer account #%1$d (%2$s) — matched by billing email at checkout. Provisional: ownership not yet confirmed.', 'babypasa-account-linking' ),
+			__( 'Order linked to customer account #%1$d (%2$s) — matched by billing email at checkout.', 'babypasa-account-linking' ),
 			$order->get_customer_id(),
 			$email
 		);
-	}
-
-	/**
-	 * Whether $order currently carries a link we created that has not yet been
-	 * confirmed by an admin. Used everywhere a customer-facing action needs to
-	 * be gated, and by the admin notice/column.
-	 */
-	public static function is_provisional( WC_Order $order ): bool {
-		return (bool) $order->get_meta( self::META_LINKED ) && ! $order->get_meta( self::META_CONFIRMED );
-	}
-
-	/**
-	 * Confirms ownership of an already-linked order, lifting the provisional
-	 * gates. No-op (returns false) if the order was never linked by us, or is
-	 * already confirmed.
-	 *
-	 * @param  WC_Order $order         The order.
-	 * @param  int       $admin_user_id Admin performing the confirmation.
-	 */
-	public static function confirm( WC_Order $order, int $admin_user_id ): bool {
-		if ( ! $order->get_meta( self::META_LINKED ) || $order->get_meta( self::META_CONFIRMED ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( self::META_CONFIRMED, time() );
-
-		$admin = get_userdata( $admin_user_id );
-		$order->add_order_note(
-			sprintf(
-				/* translators: %s: admin display name */
-				__( 'Ownership confirmed by %s — provisional restrictions lifted.', 'babypasa-account-linking' ),
-				$admin ? $admin->display_name : __( 'admin', 'babypasa-account-linking' )
-			)
-		);
-		$order->save();
-
-		return true;
 	}
 
 	/**
@@ -163,7 +124,6 @@ class BP_AL_Linker {
 		$order->set_customer_id( 0 );
 		$order->delete_meta_data( self::META_LINKED );
 		$order->delete_meta_data( self::META_SOURCE );
-		$order->delete_meta_data( self::META_CONFIRMED );
 
 		if ( $old_customer_id > 0 ) {
 			self::reset_customer_totals( $old_customer_id, $order );

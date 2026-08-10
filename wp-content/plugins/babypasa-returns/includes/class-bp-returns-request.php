@@ -105,9 +105,6 @@ class BP_Returns_Request {
 		if ( ! $order->get_user_id() || get_current_user_id() !== $order->get_user_id() ) {
 			return __( 'This order is not associated with your account.', 'babypasa-returns' );
 		}
-		if ( class_exists( 'BP_AL_Linker' ) && BP_AL_Linker::is_provisional( $order ) ) {
-			return __( 'This order is not associated with your account.', 'babypasa-returns' );
-		}
 		if ( ! $order->has_status( 'completed' ) ) {
 			return __( 'Returns can only be requested once an order is completed (delivered).', 'babypasa-returns' );
 		}
