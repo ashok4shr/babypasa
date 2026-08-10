@@ -37,6 +37,14 @@ class UPAYA_Location_Cache {
 	/** Lock TTL (seconds) — long enough to cover one /locations fetch. */
 	const LOCK_TTL = 60;
 
+	/**
+	 * WP option storing a version stamp for the client-side hub+area index.
+	 * Bumped on every successful rebuild() so the frontend's sessionStorage
+	 * cache key changes and stale data is naturally ignored, never actively
+	 * purged.
+	 */
+	const INDEX_VERSION_OPTION = 'upaya_area_index_version';
+
 	/** @var UPAYA_API */
 	private UPAYA_API $api;
 
@@ -117,6 +125,95 @@ class UPAYA_Location_Cache {
 		}
 		ksort( $areas );
 		return $areas;
+	}
+
+	/**
+	 * Returns the full hub+area list shaped for the client-side search index
+	 * ([{id, text}, ...] — same shape as search_hub_area_options()), for the
+	 * checkout field to fetch once and filter locally rather than querying the
+	 * server on every keystroke.
+	 *
+	 * @return array<int,array{id:string,text:string}>
+	 */
+	public function get_all_hub_area_options(): array {
+		$options = [];
+
+		foreach ( $this->get_raw_cities() as $city ) {
+			$hub = $city['hubName'] ?? '';
+			if ( '' === $hub ) {
+				continue;
+			}
+			foreach ( $city['areas'] ?? [] as $area ) {
+				if ( ! ( $area['isActive'] ?? true ) ) {
+					continue;
+				}
+				$name = $area['name'] ?? '';
+				if ( '' === $name ) {
+					continue;
+				}
+
+				$options[] = [
+					'id'   => $hub . '||' . $name,
+					'text' => $hub . ' › ' . $name,
+				];
+			}
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Searches the cached hub+area tree for a case-insensitive substring match
+	 * against "Hub › Area", returning at most $limit results shaped for
+	 * SelectWoo's remote-search transport ([{id, text}, ...]).
+	 *
+	 * Read-only — reads through the same 12h cache as everything else here;
+	 * never triggers a request on its own beyond the normal get_raw_cities()
+	 * cache-miss fetch.
+	 *
+	 * @param  string $term  Search term (already trimmed/sanitised by the caller).
+	 * @param  int    $limit Maximum number of results to return.
+	 * @return array<int,array{id:string,text:string}>
+	 */
+	public function search_hub_area_options( string $term, int $limit = 20 ): array {
+		$term = trim( $term );
+		if ( '' === $term ) {
+			return [];
+		}
+
+		$results = [];
+
+		foreach ( $this->get_raw_cities() as $city ) {
+			$hub = $city['hubName'] ?? '';
+			if ( '' === $hub ) {
+				continue;
+			}
+			foreach ( $city['areas'] ?? [] as $area ) {
+				if ( ! ( $area['isActive'] ?? true ) ) {
+					continue;
+				}
+				$name = $area['name'] ?? '';
+				if ( '' === $name ) {
+					continue;
+				}
+
+				$label = $hub . ' › ' . $name;
+				if ( false === stripos( $label, $term ) ) {
+					continue;
+				}
+
+				$results[] = [
+					'id'   => $hub . '||' . $name,
+					'text' => $label,
+				];
+
+				if ( count( $results ) >= $limit ) {
+					return $results;
+				}
+			}
+		}
+
+		return $results;
 	}
 
 	/* ------------------------------------------------------------------
@@ -243,6 +340,11 @@ class UPAYA_Location_Cache {
 		$count     = is_array( $flattened ) ? count( $flattened ) : 0;
 
 		delete_transient( self::TRANSIENT_LOCK );
+
+		// Bump the client-side index version so checkout browsers holding a
+		// sessionStorage copy of the old hub+area list fetch the fresh one
+		// instead of silently filtering stale data for the rest of their session.
+		update_option( self::INDEX_VERSION_OPTION, time(), false );
 
 		$this->logger->debug( "Location cache rebuilt — {$count} area(s) loaded." );
 		return $count;

@@ -17,17 +17,25 @@ defined( 'ABSPATH' ) || exit;
  * Cargo plugin:
  *
  *  1. Force Nepal as the only selectable country.
- *  2. Replace billing_state with a hub/zone dropdown (146 Upaya hubs).
- *  3. Replace billing_city with an AJAX-powered area dropdown that
- *     updates when the zone changes.
- *  4. Make mobile number required; add "Alternate Mobile Number" field.
- *  5. Disable the "Ship to different address" section (use billing).
- *  6. Add Upaya-specific landmark field to billing.
+ *  2. Replace billing_state + billing_city with a single combined Hub+Area
+ *     SelectWoo field, searched remotely via AJAX (the full dataset — several
+ *     thousand hub+area combinations — is never rendered into the page; see
+ *     get_current_hub_area_options() and ajax_search_areas()).
+ *  3. Make mobile number required; add "Alternate Mobile Number" field.
+ *  4. Disable the "Ship to different address" section (use billing).
+ *  5. Add Upaya-specific landmark field to billing.
  */
 class UPAYA_Checkout {
 
-	/** Transient key for hub→areas map used by AJAX handler. */
-	const AJAX_NONCE = 'upaya_get_areas';
+	/** WP AJAX action (and nonce action) for the combined Hub+Area remote search. */
+	const AJAX_NONCE = 'upaya_search_areas';
+
+	/**
+	 * WP AJAX action (and nonce action) serving the full hub+area list once,
+	 * for client-side local filtering (see upaya-checkout.js). AJAX_NONCE
+	 * above stays live as the fallback while that local index is loading.
+	 */
+	const AJAX_INDEX_ACTION = 'upaya_get_area_index';
 
 	/** @var UPAYA_Location_Cache */
 	private UPAYA_Location_Cache $location_cache;
@@ -86,6 +94,14 @@ class UPAYA_Checkout {
 
 		// ── Frontend assets ──────────────────────────────────────────────
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_checkout_assets' ] );
+
+		// ── Combined Hub+Area remote search (guests + logged-in) ─────────
+		add_action( 'wp_ajax_' . self::AJAX_NONCE,        [ $this, 'ajax_search_areas' ] );
+		add_action( 'wp_ajax_nopriv_' . self::AJAX_NONCE, [ $this, 'ajax_search_areas' ] );
+
+		// ── Full hub+area index, fetched once for client-side local filtering ──
+		add_action( 'wp_ajax_' . self::AJAX_INDEX_ACTION,        [ $this, 'ajax_get_area_index' ] );
+		add_action( 'wp_ajax_nopriv_' . self::AJAX_INDEX_ACTION, [ $this, 'ajax_get_area_index' ] );
 	}
 
 	/* ------------------------------------------------------------------
@@ -156,7 +172,9 @@ class UPAYA_Checkout {
 			// wc-enhanced-select makes WC's checkout JS treat this as a SelectWoo
 			// field, ensuring search is re-applied after every DOM update.
 			'class'    => [ 'form-row-wide', 'upaya-hub-area-select', 'wc-enhanced-select' ],
-			'options'  => $this->get_hub_area_options(),
+			// Only a placeholder (+ the current selection, if any) is rendered —
+			// the full hub+area dataset is fetched on demand via ajax_search_areas().
+			'options'  => $this->get_current_hub_area_options(),
 			'priority' => 49,
 			'default'  => $this->get_current_hub_area_value(),
 		];
@@ -225,7 +243,7 @@ class UPAYA_Checkout {
 				'label'    => __( 'Delivery Area', 'upaya-cargo-woocommerce' ),
 				'required' => true,
 				'class'    => [ 'form-row-wide', 'upaya-hub-area-select', 'wc-enhanced-select' ],
-				'options'  => $this->get_hub_area_options(),
+				'options'  => $this->get_current_hub_area_options( 'shipping' ),
 				'priority' => 49,
 				'default'  => $this->get_current_hub_area_value( 'shipping' ),
 			];
@@ -248,47 +266,67 @@ class UPAYA_Checkout {
 	}
 
 	/**
-	 * Builds the flat option list for the combined Hub+Area select.
+	 * Builds the minimal option list for the combined Hub+Area select: a
+	 * placeholder, plus — when one is already selected (POST data, a
+	 * logged-in customer's saved address, or a validation-failure re-render)
+	 * — that single "Hub||Area" option, pre-selected.
 	 *
-	 * Options are grouped visually as "Hub Name › Area Name" with the value
-	 * encoded as "Hub Name||Area Name" so JS can split and populate the hidden
-	 * billing_state and billing_city fields without extra AJAX calls.
+	 * The full dataset (several thousand hub+area combinations) is never
+	 * rendered into the page; SelectWoo fetches matches on demand from
+	 * ajax_search_areas() as the customer types. The label is derived from
+	 * the value itself (which already encodes both names), so this needs no
+	 * cache lookup and works even if the location cache is cold.
 	 *
+	 * @param  string $prefix 'billing' or 'shipping'.
 	 * @return array<string,string>  [ value => label ]
 	 */
-	private function get_hub_area_options(): array {
+	private function get_current_hub_area_options( string $prefix = 'billing' ): array {
 		$options = [ '' => __( '— Select Delivery Area —', 'upaya-cargo-woocommerce' ) ];
 
-		$cities = $this->location_cache->get_raw_cities();
-
-		// Collect all hubs and their areas.
-		$hubs = [];
-		foreach ( $cities as $city ) {
-			$hub = $city['hubName'] ?? '';
-			if ( $hub === '' ) {
-				continue;
-			}
-			foreach ( $city['areas'] ?? [] as $area ) {
-				if ( ! ( $area['isActive'] ?? true ) ) {
-					continue;
-				}
-				$name = $area['name'] ?? '';
-				if ( $name !== '' ) {
-					$hubs[ $hub ][] = $name;
-				}
-			}
-		}
-		ksort( $hubs );
-
-		foreach ( $hubs as $hub => $areas ) {
-			sort( $areas );
-			foreach ( $areas as $area ) {
-				// Value encodes both hub and area; || is safe because hub/area names don't contain it.
-				$options[ $hub . '||' . $area ] = $hub . ' › ' . $area;
-			}
+		$current = $this->get_current_hub_area_value( $prefix );
+		if ( '' !== $current && false !== strpos( $current, '||' ) ) {
+			[ $hub, $area ] = explode( '||', $current, 2 );
+			$options[ $current ] = $hub . ' › ' . $area;
 		}
 
 		return $options;
+	}
+
+	/**
+	 * AJAX: returns up to 20 "Hub › Area" matches for the combined Delivery
+	 * Area SelectWoo field's remote search. Reads the existing, already-cached
+	 * location tree — never calls the Upaya API directly from this request
+	 * path (a cold cache self-heals via UPAYA_Location_Cache::get_raw_cities(),
+	 * same as any other page that reads it).
+	 *
+	 * @return void
+	 */
+	public function ajax_search_areas(): void {
+		check_ajax_referer( self::AJAX_NONCE, 'security' );
+
+		$term = isset( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
+
+		if ( strlen( $term ) < 2 ) {
+			wp_send_json_success( [] );
+		}
+
+		wp_send_json_success( $this->location_cache->search_hub_area_options( $term ) );
+	}
+
+	/**
+	 * AJAX: returns the full hub+area list ([{id, text}, ...], several thousand
+	 * entries) once so the checkout field can filter it locally afterwards —
+	 * no server round trip per keystroke. Fetched eagerly in the background on
+	 * page load (see upaya-checkout.js), cached client-side in sessionStorage
+	 * keyed by the index version, so this normally runs once per browser
+	 * session rather than once per checkout visit.
+	 *
+	 * @return void
+	 */
+	public function ajax_get_area_index(): void {
+		check_ajax_referer( self::AJAX_INDEX_ACTION, 'security' );
+
+		wp_send_json_success( $this->location_cache->get_all_hub_area_options() );
 	}
 
 	/**
@@ -683,6 +721,13 @@ class UPAYA_Checkout {
 			return;
 		}
 
+		// Prime the location cache so the remote area search and the shipping-rate
+		// calculation both have warm data the moment the customer needs them.
+		// Rendering the full options list used to do this as a side effect on every
+		// checkout load; now that only a placeholder is rendered, that warm-up must
+		// happen explicitly. No-op (cheap transient read) when already warm.
+		$this->location_cache->get_raw_cities();
+
 		wp_enqueue_script(
 			'upaya-checkout',
 			UPAYA_PLUGIN_URL . 'assets/js/upaya-checkout.js',
@@ -691,7 +736,17 @@ class UPAYA_Checkout {
 			true
 		);
 
-		// No localised data required for the combined field approach.
-		// Script kept for potential future use.
+		wp_localize_script(
+			'upaya-checkout',
+			'upaya_checkout_params',
+			[
+				'ajax_url'      => admin_url( 'admin-ajax.php' ),
+				'search_action' => self::AJAX_NONCE,
+				'search_nonce'  => wp_create_nonce( self::AJAX_NONCE ),
+				'index_action'  => self::AJAX_INDEX_ACTION,
+				'index_nonce'   => wp_create_nonce( self::AJAX_INDEX_ACTION ),
+				'index_version' => (string) get_option( UPAYA_Location_Cache::INDEX_VERSION_OPTION, '0' ),
+			]
+		);
 	}
 }
