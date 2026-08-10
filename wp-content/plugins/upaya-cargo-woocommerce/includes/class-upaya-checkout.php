@@ -65,6 +65,11 @@ class UPAYA_Checkout {
 		// ── Checkout field modifications ─────────────────────────────────
 		add_filter( 'woocommerce_checkout_fields',          [ $this, 'modify_checkout_fields' ] );
 		add_filter( 'woocommerce_default_address_fields',   [ $this, 'override_default_address_fields' ] );
+		// Falls back to the address book's default saved address for the hidden
+		// billing/shipping state+city fields when WooCommerce's own native
+		// customer profile has no hub/area on file yet (see get_current_hub_area_value()
+		// and get_default_saved_address() for why that's the common case).
+		add_filter( 'woocommerce_checkout_get_value',       [ $this, 'fallback_hidden_fields_to_default_address' ], 10, 2 );
 		// Mobile Number (billing_phone) label/required/priority is set here, on the
 		// filter WooCommerce documents as authoritative for address-field changes,
 		// so it reliably sorts above the Alternate Mobile Number. See override_billing_phone_field().
@@ -363,7 +368,86 @@ class UPAYA_Checkout {
 		}
 		// phpcs:enable
 
+		// Fall back to the address book's default saved address when the
+		// customer's native WooCommerce profile has nothing on file yet — the
+		// normal case for someone who saved an address via the address book but
+		// has never actually completed an order (the only point at which
+		// WooCommerce itself persists billing_state/billing_city to the account).
+		if ( '' === $hub || '' === $area ) {
+			$default = $this->get_default_saved_address();
+			if ( null !== $default ) {
+				$hub  = '' !== $hub  ? $hub  : $default['state'];
+				$area = '' !== $area ? $area : $default['city'];
+			}
+		}
+
 		return ( $hub !== '' && $area !== '' ) ? ( $hub . '||' . $area ) : '';
+	}
+
+	/**
+	 * Looks up the logged-in customer's default babypasa-address-book entry, if
+	 * any. Cross-plugin, soft dependency — guards against that plugin being
+	 * inactive, mirroring the babypasa_resolve_delivery_charge() wrapper pattern
+	 * used elsewhere in this codebase.
+	 *
+	 * @return array{state:string,city:string}|null
+	 */
+	private function get_default_saved_address(): ?array {
+		if ( ! is_user_logged_in() || ! class_exists( 'BP_Address_Book' ) ) {
+			return null;
+		}
+
+		$default = BP_Address_Book::get_default_address( get_current_user_id() );
+		if ( ! $default || empty( $default['state'] ) || empty( $default['city'] ) ) {
+			return null;
+		}
+
+		return [
+			'state' => (string) $default['state'],
+			'city'  => (string) $default['city'],
+		];
+	}
+
+	/**
+	 * Filters woocommerce_checkout_get_value so the hidden billing_state /
+	 * billing_city (and shipping_ equivalents) fields also fall back to the
+	 * address book's default saved address — without this, the visible
+	 * combined Hub+Area select can show the correct pre-selected value (via
+	 * get_current_hub_area_value()) while these hidden inputs it's meant to
+	 * mirror stay empty, so submitting without touching the field would
+	 * silently drop the delivery area.
+	 *
+	 * This filter fires BEFORE WooCommerce checks $_POST or the native customer
+	 * object (see WC_Checkout::get_value()), so it must replicate that same
+	 * "real data wins" precedence itself — delegating to
+	 * get_current_hub_area_value(), which already checks $_POST and the native
+	 * customer profile before this address-book fallback, achieves exactly that.
+	 *
+	 * @param  mixed  $value WooCommerce's value so far for this field (null here).
+	 * @param  string $input Checkout field key, e.g. 'billing_state'.
+	 * @return mixed
+	 */
+	public function fallback_hidden_fields_to_default_address( $value, string $input ) {
+		$map = [
+			'billing_state'  => [ 'billing',  'hub'  ],
+			'billing_city'   => [ 'billing',  'area' ],
+			'shipping_state' => [ 'shipping', 'hub'  ],
+			'shipping_city'  => [ 'shipping', 'area' ],
+		];
+
+		if ( ! isset( $map[ $input ] ) ) {
+			return $value;
+		}
+
+		[ $prefix, $part ] = $map[ $input ];
+		$combined          = $this->get_current_hub_area_value( $prefix );
+
+		if ( '' === $combined ) {
+			return $value;
+		}
+
+		[ $hub, $area ] = explode( '||', $combined, 2 );
+		return 'hub' === $part ? $hub : $area;
 	}
 
 	/**
