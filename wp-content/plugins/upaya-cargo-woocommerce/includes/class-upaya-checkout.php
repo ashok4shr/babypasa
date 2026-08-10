@@ -702,6 +702,11 @@ class UPAYA_Checkout {
 			return;
 		}
 
+		// Unconfirmed account-email match — hide until an admin confirms ownership.
+		if ( class_exists( 'BP_AL_Linker' ) && \BP_AL_Linker::is_provisional( $order ) ) {
+			return;
+		}
+
 		$alt_phone = $order->get_meta( '_billing_alternate_phone' );
 		if ( $alt_phone ) {
 			echo '<p class="woocommerce-customer-details--alt-phone">'
