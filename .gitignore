@@ -25,6 +25,7 @@
 # --- Plugins: descend, then whitelist custom plugins only ---
 !/wp-content/plugins/
 /wp-content/plugins/*
+!/wp-content/plugins/babypasa-account-linking/
 !/wp-content/plugins/babypasa-address-book/
 !/wp-content/plugins/babypasa-admin-order-enhancements/
 !/wp-content/plugins/babypasa-connectips/
