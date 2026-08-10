@@ -39,12 +39,20 @@ final class BP_OE_Core {
 			new BP_Invoice_PDF_Admin();
 			new BP_Invoice_PDF_Ajax( $pdf_generator );
 		}
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			WP_CLI::add_command( 'babypasa feedback-email', 'BP_OE_CLI_Command' );
+		}
 	}
 
 	private function includes(): void {
 		require_once BP_OE_DIR . 'includes/class-bp-oe-emails.php';
 		require_once BP_OE_DIR . 'includes/class-bp-oe-order-actions.php';
 		require_once BP_OE_DIR . 'includes/class-bp-oe-feedback-scheduler.php';
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			require_once BP_OE_DIR . 'includes/cli/class-bp-oe-cli-command.php';
+		}
 
 		// Invoice PDF subsystem.
 		require_once BP_OE_DIR . 'includes/pdf/class-bp-invoice-pdf-settings.php';
