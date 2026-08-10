@@ -172,18 +172,6 @@ class BP_Order_Tracking_Account {
 			'order'       => 'DESC',
 		] );
 
-		// Exclude orders with an unconfirmed account-email match — the billing
-		// email at guest checkout is unverified, so tracking details stay hidden
-		// until an admin confirms ownership.
-		if ( class_exists( 'BP_AL_Linker' ) ) {
-			$customer_orders = array_values( array_filter(
-				$customer_orders,
-				static function ( $order ) {
-					return ! BP_AL_Linker::is_provisional( $order );
-				}
-			) );
-		}
-
 		// Instantiate the Upaya order manager to access get_tracking_info().
 		$manager = new UPAYA_Order_Manager();
 

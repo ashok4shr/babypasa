@@ -91,15 +91,12 @@ class BP_AL_CLI_Command extends WP_CLI_Command {
 			WP_CLI::error( 'Pass a valid --order=<id>.' );
 		}
 
-		$linked_at    = (int) $order->get_meta( BP_AL_Linker::META_LINKED );
-		$confirmed_at = (int) $order->get_meta( BP_AL_Linker::META_CONFIRMED );
+		$linked_at = (int) $order->get_meta( BP_AL_Linker::META_LINKED );
 
 		WP_CLI::log( "Order:            #{$order_id}" );
 		WP_CLI::log( 'Customer id:      ' . $order->get_customer_id() . ( $order->get_customer_id() ? '' : ' (guest)' ) );
 		WP_CLI::log( 'Billing email:    ' . ( $order->get_billing_email() ?: '(none)' ) );
-		WP_CLI::log( 'Linked:           ' . ( $linked_at ? gmdate( 'Y-m-d H:i:s', $linked_at ) . ' UTC (' . $order->get_meta( BP_AL_Linker::META_SOURCE ) . ')' : 'no' ) );
-		WP_CLI::log( 'Confirmed:        ' . ( $confirmed_at ? gmdate( 'Y-m-d H:i:s', $confirmed_at ) . ' UTC' : 'no' ) );
-		WP_CLI::log( 'Provisional now:  ' . ( BP_AL_Linker::is_provisional( $order ) ? 'yes' : 'no' ) );
+		WP_CLI::log( 'Linked by plugin: ' . ( $linked_at ? gmdate( 'Y-m-d H:i:s', $linked_at ) . ' UTC (' . $order->get_meta( BP_AL_Linker::META_SOURCE ) . ')' : 'no' ) );
 	}
 
 	/**
