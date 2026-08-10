@@ -88,25 +88,30 @@
 				return $( this ).val() === hubAreaVal;
 			} ).length > 0;
 
-			if ( hasOption ) {
-				// Set the native select value.
-				$select.val( hubAreaVal );
-
-				// Refresh SelectWoo's displayed text without firing app listeners.
-				if ( $.fn.selectWoo ) {
-					$select.trigger( 'change.select2' );
-				} else if ( $.fn.select2 ) {
-					$select.trigger( 'change.select2' );
-				}
-
-				// Fire the standard change event — upaya-checkout.js listens here,
-				// splits the combined value, writes hidden inputs, then debounces
-				// update_checkout (300 ms). Do NOT call update_checkout directly.
-				$select.trigger( 'change' );
+			if ( ! hasOption ) {
+				// The combined select only ever renders a placeholder plus whichever
+				// one value was already current when the page loaded (see
+				// UPAYA_Checkout::get_current_hub_area_options()) — the full dataset
+				// is no longer pre-rendered. A saved address the customer hasn't
+				// already got selected won't exist as an <option> yet, so insert one
+				// (the standard select2/selectWoo pattern for setting an external
+				// value) instead of silently skipping the fill.
+				var label = ( addr.state && addr.city ) ? ( addr.state + ' › ' + addr.city ) : hubAreaVal;
+				$select.append( new Option( label, hubAreaVal, false, false ) );
 			}
-			// If the option is not found (stale hub_area), the hidden inputs are
-			// already set from step 3, so address fields are still populated; the
-			// shipping rate may not recalculate until the user selects manually.
+
+			// Set the native select value.
+			$select.val( hubAreaVal );
+
+			// Refresh SelectWoo's displayed text without firing app listeners.
+			if ( $.fn.selectWoo || $.fn.select2 ) {
+				$select.trigger( 'change.select2' );
+			}
+
+			// Fire the standard change event — upaya-checkout.js listens here,
+			// splits the combined value, writes hidden inputs, then debounces
+			// update_checkout (300 ms). Do NOT call update_checkout directly.
+			$select.trigger( 'change' );
 		}
 	}
 
