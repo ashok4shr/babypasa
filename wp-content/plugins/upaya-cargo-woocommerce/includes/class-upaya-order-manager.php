@@ -623,7 +623,7 @@ class UPAYA_Order_Manager {
 			$qty      = (int) $item['qty'];
 			$sku_part = '' !== $sku ? " ({$sku})" : '';
 
-			$segments[] = "{$name}{$sku_part} x{$qty}";
+			$segments[] = "{$name}{$sku_part} QTY- {$qty}";
 		}
 
 		return implode( ' | ', $segments );
